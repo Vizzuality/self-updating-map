@@ -1,0 +1,3 @@
+[submodule "js/vendor/cdb.js"]
+	path = js/vendor/cdb.js
+	url = git@github.com:CartoDB/cdb.js.git
