@@ -7,56 +7,107 @@
     <link href="css/style.css" media="screen, projection" rel="stylesheet" type="text/css" />
     <link href="css/print.css" media="print" rel="stylesheet" type="text/css" />
 
-    <!--[if IE]>
-    <link href="/css/ie.css" media="screen, projection" rel="stylesheet" type="text/css" />
-    <![endif]-->
-
-    <!-- Basic -->
-    <!--
-    <script src="js/vendor/jquery-1.8.1.min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/vendor/modernizr.js" type="text/javascript" charset="utf-8"></script>
-    -->
-
-    <!-- D3 -->
-    <!--
-    <script src="js/vendor/d3.v2.min.js" type="text/javascript" charset="utf-8"></script>
-    -->
-
-    <!-- Backbone -->
-    <!--
-    <script src="js/vendor/underscore.min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/vendor/backbone-min.js" type="text/javascript" charset="utf-8"></script>
-    -->
-
-    <!-- Maps: CartoDB + Google Maps v3 -->
-    <!--
-    <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
-    <script src="js/lib/wax.g.min-6.2.0-touched.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/vendor/cartodb-gmapsv3-min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/vendor/cartodb-infowindow-min.js" type="text/javascript" charset="utf-8"></script>
-
-    <link  href="http://code.google.com/apis/maps/documentation/javascript/examples/default.css" rel="stylesheet" type="text/css" />
-    <link  href="css/vendor/cartodb-gmapsv3.css" rel="stylesheet" type="text/css">
-    -->
-
-    <!-- Maps: CartoDB + Leaflet -->
-    <!--
-    <script src="http://code.leafletjs.com/leaflet-0.3.1/leaflet.js"></script>
-    <script src="js/lib/wax.leaf.min-6.0.5-touched.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/vendor/cartodb-leaflet-min.js" type="text/javascript" charset="utf-8"></script>
-    <script src="js/vendor/cartodb-popup-min.js" type="text/javascript" charset="utf-8"></script>
-
-    <link rel="stylesheet" href="http://code.leafletjs.com/leaflet-0.3.1/leaflet.css" />
-    <link  href="css/vendor/cartodb-leaflet.css" rel="stylesheet" type="text/css">
-    -->
-
-    <script src="js/app.js" type="text/javascript" charset="utf-8"></script>
+    <style>body,html {width:100%; height:100%; margin:0; padding:0;} #map {position:relative; margin:0; width:100%; height:100%;}</style>
+    <link rel="stylesheet" href="css/leaflet.css" />
+    <!--[if IE]><link rel="stylesheet" href="../css/leaflet.ie.css" /><![endif]-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+    <script src="js/vendor/leaflet.js"></script>
+    <script type="text/javascript" src="js/vendor/wax.leaf.min.js"></script>
+    <script type="text/javascript" src="js/vendor/cartodb-leaflet-min.js"></script>
+    <script type="text/javascript" src="js/vendor/cartodb-popup-min.js"></script>
 
     <script type="text/javascript">
-      // Scripts
+      var timer, countries, map;
+
+      window.countries = countries;
+
+      var userName = 'viz2';
+      var tableName = 'us_elections_2008';
+      var lastUpdate = null;
+
+      var refreshInterval = 3000;
+
+      var refresh = function() {
+
+        // console.log('test');
+
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
+        console.log(url);
+
+        $.get(url, function(data) {
+          var updated_at = data.rows[0].updated_at;
+          var updatedAtDate = new Date(Date.parse(updated_at));
+
+          if (updatedAtDate > lastUpdate) {
+            console.log("should refresh");
+
+            if (!countries) {
+
+              countries = new L.CartoDBLayer({
+                map: map,
+                user_name: userName,
+                table_name: tableName,
+                extra_params: {
+                  update: updated_at
+                },
+                cdn_url: "http://d2c5ry9dy1ewvi.cloudfront.net",
+                interactivity: "cartodb_id,obama_win",
+                featureOver: function(ev,latlng,pos,data) {
+                  document.body.style.cursor = "pointer";
+                },
+                featureOut: function() {
+                  document.body.style.cursor = "default";
+                },
+                featureClick: function() {},
+                auto_bound: false,
+                debug: true
+              });
+              // Adding layer to map
+              map.addLayer(countries, false);
+
+            } else {
+              countries.setOptions({ extra_params: { update: updated_at } });
+
+
+            }
+
+          } else {
+            console.log("should not refresh");
+          }
+
+          lastUpdate = updatedAtDate;
+
+
+        });
+
+        if (!timer) {
+          timer = setInterval(refresh, refreshInterval);
+        }
+
+      }
+
+      function initialize() {
+
+
+        refresh();
+        //timer = setInterval(refresh, refreshInterval);
+
+        map = new L.Map('map').setView(new L.LatLng(39.849034, -100.371094), 4);
+        var mapboxUrl = 'http://{s}.tiles.mapbox.com/v3/cartodb.map-1nh578vv/{z}/{x}/{y}.png'
+        , mapbox = new L.TileLayer(mapboxUrl, {maxZoom: 18, attribution: "OpenStreetMaps"});
+        map.addLayer(mapbox,true);
+
+        // Create a CartoDB popup
+        var popup = new L.CartoDBPopup();
+
+
+
+      }
     </script>
 
+
   </head>
-  <body>
+  <body onload="initialize();">
+    <div id="map"></div>
   </body>
 </html>
