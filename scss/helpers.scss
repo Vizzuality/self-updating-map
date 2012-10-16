@@ -1,5 +1,4 @@
 @import "compass/css3";
-@import "fonts";
 
 /* Colors */
 $cWhite:                 #FFFFFF;
@@ -145,17 +144,3 @@ $cGray0:                 #000000;
   font-family: "SourceSansPro-Black", Helvetica, Arial, sans-serif;
 }
 
-@mixin font($font, $font-size, $color: false, $font-weight: false) {
-
-  @if $font == "sans-serif"            { @extend .sans-serif; }
-  @if $font == "sans-serif-extralight" { @extend .sans-serif-extralight; }
-  @if $font == "sans-serif-light"      { @extend .sans-serif-light; }
-  @if $font == "sans-serif-semibold"   { @extend .sans-serif-semibold; }
-  @if $font == "sans-serif-bold"       { @extend .sans-serif-bold; }
-  @if $font == "sans-serif-black"      { @extend .sans-serif-black; }
-
-  @if $color       != false { color: $color; }
-  @if $font-size   != false { font-size: $font-size; }
-  @if $font-weight != false { font-weight: $font-weight; }
-
-}
