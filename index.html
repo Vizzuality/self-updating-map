@@ -28,6 +28,19 @@
       tableName       = 'us_elections_2008',
       refreshInterval = 3000; 
 
+      function showMessage(message) {
+
+        $(".message").html(message);
+
+        $(".message").animate({ opacity: 1, top: 0 }, { duration: 250, complete: function() {
+
+          setTimeout(function() {
+            $(".message").animate({ opacity: 0, top: "-30px" }, 250);
+          }, 3000);
+
+        }});
+      }
+
       function createLayer(updatedAt) {
 
         return new L.CartoDBLayer({
@@ -66,13 +79,7 @@
               countries.setOptions({ extra_params: { update: updatedAt } });
             }
 
-            $(".message").animate({ opacity: 1, top: 0 }, { duration: 250, complete: function() {
-
-              setTimeout(function() {
-                $(".message").animate({ opacity: 0, top: "-30px" }, 250);
-              }, 3000);
-
-            }});
+            showMessage("Map updated");
 
             lastUpdate = updatedAtDate;
 
@@ -99,6 +106,21 @@
         // Create a CartoDB popup
         var popup = new L.CartoDBPopup();
 
+        $(".interval").val(refreshInterval);
+
+        $(".update-interval").on("click", function() {
+
+          if (refreshInterval != $(".interval").val()) {
+            refreshInterval = $(".interval").val();
+            showMessage("Refresh interval changed to " + $(".interval").val() + " milliseconds");
+
+            clearInterval(timer);
+            timer = null;
+            refresh();
+          }
+
+        });
+
         refresh();
 
       }
@@ -107,6 +129,9 @@
 
   <body onload="initialize();">
     <div class="message">Map updated</div>
+    <div class="controls">
+      <input type="text" class="interval" />ms&nbsp;&nbsp; <a href="#" class="update-interval">update refresh time</a>
+    </div>
     <div id="map"></div>
   </body>
 </html>
