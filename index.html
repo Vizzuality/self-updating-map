@@ -77,9 +77,8 @@
 
             } else { // update layer
               countries.setOptions({ extra_params: { update: updatedAt } });
+              showMessage("Map updated");
             }
-
-            showMessage("Map updated");
 
             lastUpdate = updatedAtDate;
 
@@ -112,7 +111,7 @@
 
           if (refreshInterval != $(".interval").val()) {
             refreshInterval = $(".interval").val();
-            showMessage("Refresh interval changed to " + $(".interval").val() + " milliseconds");
+            showMessage("Refresh interval changed to <strong>" + $(".interval").val() + " milliseconds</strong>");
 
             clearInterval(timer);
             timer = null;
