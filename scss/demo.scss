@@ -1,8 +1,0 @@
-@import "helpers";
-
-h1.light { @include font("sans-serif-light", 30px, $cGray1); }
-h1.extra-light { @include font("sans-serif-extralight", 30px, $cGray1); }
-h1.regular { @include font("sans-serif", 30px, $cGray1); }
-h1.semibold { @include font("sans-serif-semibold", 30px, $cGray1); }
-h1.bold { @include font("sans-serif-bold", 30px, $cGray1); }
-h1.black { @include font("sans-serif-black", 30px, $cGray1); }
