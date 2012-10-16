@@ -14,7 +14,6 @@
     <script type="text/javascript" src="js/vendor/wax.leaf.min.js"></script>
     <script type="text/javascript" src="js/vendor/cartodb-leaflet-min.js"></script>
     <script type="text/javascript" src="js/vendor/cartodb-popup-min.js"></script>
-
     <script type="text/javascript">
 
       window.countries = countries;
@@ -57,25 +56,25 @@
           featureOut:   function() { document.body.style.cursor = "default"; },
           featureClick: function(e, latlng, pos, data) {
 
-              if (typeof( window.event ) != "undefined" ) {
-            // IE
-            e.cancelBubble=true;
-          } else {
-            // Rest
-            e.preventDefault();
-            e.stopPropagation();
-          }
+            if (typeof( window.event ) != "undefined" ) {
+              // IE
+              e.cancelBubble=true;
+            } else {
+              // Rest
+              e.preventDefault();
+              e.stopPropagation();
+            }
 
-          if (data.obama_win != true) data.obama_win = "false";
-          
-          // Set popup content
-          popup.setContent(data);
+            if (data.obama_win != true) data.obama_win = "false";
 
-          // Set latlng
-          popup.setLatLng(latlng);
+            // Set popup content
+            popup.setContent(data);
 
-          // Show it!
-          map.openPopup(popup);
+            // Set latlng
+            popup.setLatLng(latlng);
+
+            // Show it!
+            map.openPopup(popup);
 
           }
         });
@@ -84,7 +83,7 @@
 
       var refresh = function() {
 
-        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at, cartodb_id, obama_win, percent_de, percent_re FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
 
         $.get(url, function(data) {
 
@@ -100,6 +99,9 @@
 
             } else { // update layer
               countries.setOptions({ extra_params: { update: updatedAt } });
+
+              popup._close();
+
               showMessage("Map updated");
             }
 
@@ -116,16 +118,16 @@
       }
 
       function initialize() {
-        
+
         popup = new L.CartoDBPopup();
 
         map = new L.Map('map').setView(new L.LatLng(39.849034, -100.371094), 4);
 
-        var 
-        mapboxUrl = 'http://{s}.tiles.mapbox.com/v3/cartodb.map-1nh578vv/{z}/{x}/{y}.png',
-        mapbox = new L.TileLayer(mapboxUrl, {maxZoom: 18, attribution: "OpenStreetMaps"});
-
-        map.addLayer(mapbox,true);
+        // var 
+        // mapboxUrl = 'http://{s}.tiles.mapbox.com/v3/cartodb.map-1nh578vv/{z}/{x}/{y}.png',
+        // mapbox = new L.TileLayer(mapboxUrl, {maxZoom: 18, attribution: "OpenStreetMaps"});
+        // 
+        // map.addLayer(mapbox,true);
 
         $(".interval").val(refreshInterval);
 
@@ -146,6 +148,13 @@
 
       }
     </script>
+
+    <style type="text/css">
+      .leaflet-container {
+        background: #fff;
+      }
+    </style>
+
   </head>
 
   <body onload="initialize();">
