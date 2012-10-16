@@ -83,7 +83,7 @@
 
       var refresh = function() {
 
-        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at, cartodb_id, obama_win, percent_de, percent_re FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
 
         $.get(url, function(data) {
 
