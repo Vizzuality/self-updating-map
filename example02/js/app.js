@@ -101,7 +101,7 @@ var tileStyleData = "#st0921md{line-width:1;line-opacity:1;}[status='none']{line
 
       extra_params: { update: updatedAt },
 
-      tiler_domain: 'd2f7e17k9sr9mq.cloudfront.net',
+      tiler_domain: "{s}.wsjgraphics.cartodb.com",
 
       featureOver:  onHover,
       featureOut:   onOut,
