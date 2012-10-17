@@ -97,8 +97,8 @@ var tileStyleData = "#st0921md{line-width:1;line-opacity:1;}[status='none']{line
       query: "SELECT cty0921md.the_geom_webmercator, geomjson as geometry, cty0921md.cartodb_id, states_results." + incoming_race + "_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
 
       opacity: 1,
-      interactivity: null,
-
+      interactivity: "cartodb_id, geometry, status",
+      //interactivity: null,
       extra_params: { update: updatedAt },
 
       tiler_domain: "{s}.wsjgraphics.cartodb.com",
