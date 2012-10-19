@@ -74,20 +74,23 @@
       for (n = 0; n < i.length && !r; n++) r = e[i[n] + t];
       return r
     }
-    function r(t) {
-      return e.setTimeout(t, 1e3 / 60)
+    function i(t) {
+      var n = +(new Date),
+        i = Math.max(0, 16 - (n - r));
+      return r = n + i, e.setTimeout(t, i)
     }
-    var i = e.requestAnimationFrame || t("RequestAnimationFrame") || r,
-      s = e.cancelAnimationFrame || t("CancelAnimationFrame") || t("CancelRequestAnimationFrame") ||
+    var r = 0,
+      s = e.requestAnimationFrame || t("RequestAnimationFrame") || i,
+      o = e.cancelAnimationFrame || t("CancelAnimationFrame") || t("CancelRequestAnimationFrame") ||
     function(t) {
       e.clearTimeout(t)
     };
-    n.Util.requestAnimFrame = function(t, s, o, u) {
-      t = n.Util.bind(t, s);
-      if (!o || i !== r) return i.call(e, t, u);
+    n.Util.requestAnimFrame = function(t, r, o, u) {
+      t = n.Util.bind(t, r);
+      if (!o || s !== i) return s.call(e, t, u);
       t()
     }, n.Util.cancelAnimFrame = function(t) {
-      t && s.call(e, t)
+      t && o.call(e, t)
     }
   }(), n.Class = function() {}, n.Class.extend = function(e) {
     var t = function() {
@@ -163,14 +166,16 @@
       v = o && "WebKitCSSMatrix" in e && "m11" in new e.WebKitCSSMatrix,
       m = u && "MozPerspective" in p.style,
       g = f && "OTransition" in p.style,
-      y = !e.L_NO_TOUCH &&
+      y = e.navigator && e.navigator.msPointerEnabled && e.navigator.msMaxTouchPoints,
+      b = !e.L_NO_TOUCH &&
     function() {
       var e = "ontouchstart";
+      if (y) return !0;
       if (e in p) return !0;
       var t = document.createElement("div"),
         n = !1;
       return t.setAttribute ? (t.setAttribute(e, "return;"), typeof t[e] == "function" && (n = !0), t.removeAttribute(e), t = null, n) : !1
-    }(), b = "devicePixelRatio" in e && e.devicePixelRatio > 1 || "matchMedia" in e && e.matchMedia("(min-resolution:144dpi)").matches;
+    }(), w = "devicePixelRatio" in e && e.devicePixelRatio > 1 || "matchMedia" in e && e.matchMedia("(min-resolution:144dpi)").matches;
     n.Browser = {
       ua: r,
       ie: i,
@@ -190,12 +195,16 @@
       mobileWebkit: h && o,
       mobileWebkit3d: h && v,
       mobileOpera: h && f,
-      touch: y,
-      retina: b
+      touch: b,
+      msTouch: y,
+      retina: w
     }
   }(), n.Point = function(e, t, n) {
     this.x = n ? Math.round(e) : e, this.y = n ? Math.round(t) : t
   }, n.Point.prototype = {
+    clone: function() {
+      return new n.Point(this.x, this.y)
+    },
     add: function(e) {
       return this.clone()._add(n.point(e))
     },
@@ -208,17 +217,17 @@
     _subtract: function(e) {
       return this.x -= e.x, this.y -= e.y, this
     },
-    divideBy: function(e, t) {
-      return new n.Point(this.x / e, this.y / e, t)
+    divideBy: function(e) {
+      return this.clone()._divideBy(e)
     },
-    multiplyBy: function(e, t) {
-      return new n.Point(this.x * e, this.y * e, t)
+    _divideBy: function(e) {
+      return this.x /= e, this.y /= e, this
     },
-    distanceTo: function(e) {
-      e = n.point(e);
-      var t = e.x - this.x,
-        r = e.y - this.y;
-      return Math.sqrt(t * t + r * r)
+    multiplyBy: function(e) {
+      return this.clone()._multiplyBy(e)
+    },
+    _multiplyBy: function(e) {
+      return this.x *= e, this.y *= e, this
     },
     round: function() {
       return this.clone()._round()
@@ -232,8 +241,11 @@
     _floor: function() {
       return this.x = Math.floor(this.x), this.y = Math.floor(this.y), this
     },
-    clone: function() {
-      return new n.Point(this.x, this.y)
+    distanceTo: function(e) {
+      e = n.point(e);
+      var t = e.x - this.x,
+        r = e.y - this.y;
+      return Math.sqrt(t * t + r * r)
     },
     toString: function() {
       return "Point(" + n.Util.formatNum(this.x) + ", " + n.Util.formatNum(this.y) + ")"
@@ -271,6 +283,9 @@
         o = s.x >= t.x && i.x <= r.x,
         u = s.y >= t.y && i.y <= r.y;
       return o && u
+    },
+    isValid: function() {
+      return !!this.min && !! this.max
     }
   }), n.bounds = function(e, t) {
     return !e || e instanceof n.Bounds ? e : new n.Bounds(e, t)
@@ -304,11 +319,12 @@
       var t = 0,
         r = 0,
         i = e,
-        s = document.body;
+        s = document.body,
+        o;
       do {
-        t += i.offsetTop || 0, r += i.offsetLeft || 0;
-        if (i.offsetParent === s && n.DomUtil.getStyle(i, "position") === "absolute") break;
-        if (n.DomUtil.getStyle(i, "position") === "fixed") {
+        t += i.offsetTop || 0, r += i.offsetLeft || 0, o = n.DomUtil.getStyle(i, "position");
+        if (i.offsetParent === s && o === "absolute") break;
+        if (o === "fixed") {
           t += s.scrollTop || 0, r += s.scrollLeft || 0;
           break
         }
@@ -329,7 +345,7 @@
       document.selection && document.selection.empty && document.selection.empty(), this._onselectstart || (this._onselectstart = document.onselectstart, document.onselectstart = n.Util.falseFn)
     },
     enableTextSelection: function() {
-      document.onselectstart = this._onselectstart, this._onselectstart = null
+      document.onselectstart === n.Util.falseFn && (document.onselectstart = this._onselectstart, this._onselectstart = null)
     },
     hasClass: function(e, t) {
       return e.className.length > 0 && RegExp("(^|\\s)" + t + "(\\s|$)").test(e.className)
@@ -366,10 +382,9 @@
       return r + e.x + "px," + e.y + "px" + i
     },
     getScaleString: function(e, t) {
-      var r = n.DomUtil.getTranslateString(t),
-        i = " scale(" + e + ") ",
-        s = n.DomUtil.getTranslateString(t.multiplyBy(-1));
-      return r + i + s
+      var r = n.DomUtil.getTranslateString(t.add(t.multiplyBy(-1 * e))),
+        i = " scale(" + e + ") ";
+      return r + i
     },
     setPosition: function(e, t, r) {
       e._leaflet_pos = t, !r && n.Browser.any3d ? (e.style[n.DomUtil.TRANSFORM] = n.DomUtil.getTranslateString(t), n.Browser.mobileWebkit3d && (e.style.WebkitBackfaceVisibility = "hidden")) : (e.style.left = t.x + "px", e.style.top = t.y + "px")
@@ -377,10 +392,7 @@
     getPosition: function(e) {
       return e._leaflet_pos
     }
-  }, n.Util.extend(n.DomUtil, {
-    TRANSITION: n.DomUtil.testProp(["transition", "webkitTransition", "OTransition", "MozTransition", "msTransition"]),
-    TRANSFORM: n.DomUtil.testProp(["transform", "WebkitTransform", "OTransform", "MozTransform", "msTransform"])
-  }), n.LatLng = function(e, t, n) {
+  }, n.DomUtil.TRANSFORM = n.DomUtil.testProp(["transform", "WebkitTransform", "OTransform", "MozTransform", "msTransform"]), n.DomUtil.TRANSITION = n.DomUtil.testProp(["transition", "webkitTransition", "OTransition", "MozTransition", "msTransition"]), n.DomUtil.TRANSITION_END = n.DomUtil.TRANSITION === "webkitTransition" || n.DomUtil.TRANSITION === "OTransition" ? n.DomUtil.TRANSITION + "End" : "transitionend", n.LatLng = function(e, t, n) {
     var r = parseFloat(e),
       i = parseFloat(t);
     if (isNaN(r) || isNaN(i)) throw Error("Invalid LatLng object: (" + e + ", " + t + ")");
@@ -396,8 +408,8 @@
       var t = Math.max(Math.abs(this.lat - e.lat), Math.abs(this.lng - e.lng));
       return t <= n.LatLng.MAX_MARGIN
     },
-    toString: function() {
-      return "LatLng(" + n.Util.formatNum(this.lat) + ", " + n.Util.formatNum(this.lng) + ")"
+    toString: function(e) {
+      return "LatLng(" + n.Util.formatNum(this.lat, e) + ", " + n.Util.formatNum(this.lng, e) + ")"
     },
     distanceTo: function(e) {
       e = n.latLng(e);
@@ -469,6 +481,9 @@
     },
     equals: function(e) {
       return e ? (e = n.latLngBounds(e), this._southWest.equals(e.getSouthWest()) && this._northEast.equals(e.getNorthEast())) : !1
+    },
+    isValid: function() {
+      return !!this._southWest && !! this._northEast
     }
   }), n.latLngBounds = function(e, t) {
     return !e || e instanceof n.LatLngBounds ? e : new n.LatLngBounds(e, t)
@@ -544,11 +559,11 @@
     setZoom: function(e) {
       return this.setView(this.getCenter(), e)
     },
-    zoomIn: function() {
-      return this.setZoom(this._zoom + 1)
+    zoomIn: function(e) {
+      return this.setZoom(this._zoom + (e || 1))
     },
-    zoomOut: function() {
-      return this.setZoom(this._zoom - 1)
+    zoomOut: function(e) {
+      return this.setZoom(this._zoom - (e || 1))
     },
     fitBounds: function(e) {
       var t = this.getBoundsZoom(e);
@@ -584,14 +599,11 @@
     },
     addLayer: function(e) {
       var t = n.Util.stamp(e);
-      if (this._layers[t]) return this;
-      this._layers[t] = e, e.options && !isNaN(e.options.maxZoom) && (this._layersMaxZoom = Math.max(this._layersMaxZoom || 0, e.options.maxZoom)), e.options && !isNaN(e.options.minZoom) && (this._layersMinZoom = Math.min(this._layersMinZoom || Infinity, e.options.minZoom)), this.options.zoomAnimation && n.TileLayer && e instanceof n.TileLayer && (this._tileLayersNum++, this._tileLayersToLoad++, e.on("load", this._onTileLayerLoad, this));
-      var r = function() {
-          e.onAdd(this), this.fire("layeradd", {
-            layer: e
-          })
-        };
-      return this._loaded ? r.call(this) : this.on("load", r, this), this
+      return this._layers[t] ? this : (this._layers[t] = e, e.options && !isNaN(e.options.maxZoom) && (this._layersMaxZoom = Math.max(this._layersMaxZoom || 0, e.options.maxZoom)), e.options && !isNaN(e.options.minZoom) && (this._layersMinZoom = Math.min(this._layersMinZoom || Infinity, e.options.minZoom)), this.options.zoomAnimation && n.TileLayer && e instanceof n.TileLayer && (this._tileLayersNum++, this._tileLayersToLoad++, e.on("load", this._onTileLayerLoad, this)), this.whenReady(function() {
+        e.onAdd(this), this.fire("layeradd", {
+          layer: e
+        })
+      }, this), this)
     },
     removeLayer: function(e) {
       var t = n.Util.stamp(e);
@@ -608,7 +620,7 @@
       var t = this.getSize();
       this._sizeChanged = !0, this.options.maxBounds && this.setMaxBounds(this.options.maxBounds);
       if (!this._loaded) return this;
-      var r = t.subtract(this.getSize()).divideBy(2, !0);
+      var r = t._subtract(this.getSize())._divideBy(2)._round();
       return e === !0 ? this.panBy(r) : (this._rawPanBy(r), this.fire("move"), clearTimeout(this._sizeTimer), this._sizeTimer = setTimeout(n.Util.bind(this.fire, this, "moveend"), 200)), this
     },
     addHandler: function(e, t) {
@@ -653,7 +665,7 @@
     },
     getSize: function() {
       if (!this._size || this._sizeChanged) this._size = new n.Point(this._container.clientWidth, this._container.clientHeight), this._sizeChanged = !1;
-      return this._size
+      return this._size.clone()
     },
     getPixelBounds: function() {
       var e = this._getTopLeftPoint();
@@ -743,11 +755,13 @@
     },
     _resetView: function(e, t, r, i) {
       var s = this._zoom !== t;
-      i || (this.fire("movestart"), s && this.fire("zoomstart")), this._zoom = t, this._initialTopLeftPoint = this._getNewTopLeftPoint(e), r ? this._initialTopLeftPoint._add(this._getMapPanePos()) : n.DomUtil.setPosition(this._mapPane, new n.Point(0, 0)), this._tileLayersToLoad = this._tileLayersNum, this.fire("viewreset", {
+      i || (this.fire("movestart"), s && this.fire("zoomstart")), this._zoom = t, this._initialTopLeftPoint = this._getNewTopLeftPoint(e), r ? this._initialTopLeftPoint._add(this._getMapPanePos()) : n.DomUtil.setPosition(this._mapPane, new n.Point(0, 0)), this._tileLayersToLoad = this._tileLayersNum;
+      var o = !this._loaded;
+      this._loaded = !0, this.fire("viewreset", {
         hard: !r
       }), this.fire("move"), (s || i) && this.fire("zoomend"), this.fire("moveend", {
         hard: !r
-      }), this._loaded || (this._loaded = !0, this.fire("load"))
+      }), o && this.fire("load")
     },
     _rawPanBy: function(e) {
       n.DomUtil.setPosition(this._mapPane, this._getMapPanePos().subtract(e))
@@ -786,6 +800,9 @@
     _onTileLayerLoad: function() {
       this._tileLayersToLoad--, this._tileLayersNum && !this._tileLayersToLoad && this._tileBg && (clearTimeout(this._clearTileBgTimer), this._clearTileBgTimer = setTimeout(n.Util.bind(this._clearTileBg, this), 500))
     },
+    whenReady: function(e, t) {
+      return this._loaded ? e.call(t || this, this) : this.on("load", e, t), this
+    },
     _getMapPanePos: function() {
       return n.DomUtil.getPosition(this._mapPane)
     },
@@ -794,7 +811,7 @@
       return this._initialTopLeftPoint.subtract(this._getMapPanePos())
     },
     _getNewTopLeftPoint: function(e, t) {
-      var n = this.getSize().divideBy(2);
+      var n = this.getSize()._divideBy(2);
       return this.project(e, t)._subtract(n)._round()
     },
     _latLngToNewLayerPoint: function(e, t, n) {
@@ -802,7 +819,7 @@
       return this.project(e, t)._subtract(r)
     },
     _getCenterLayerPoint: function() {
-      return this.containerPointToLayerPoint(this.getSize().divideBy(2))
+      return this.containerPointToLayerPoint(this.getSize()._divideBy(2))
     },
     _getCenterOffset: function(e) {
       return this.latLngToLayerPoint(e).subtract(this._getCenterLayerPoint())
@@ -930,7 +947,7 @@
         r = -t(Infinity, -Infinity),
         i;
       for (var s = 0, o = n.length; s < o; s++) n[s] !== this._container && (i = parseInt(n[s].style.zIndex, 10), isNaN(i) || (r = t(r, i)));
-      this._container.style.zIndex = isFinite(r) ? r + t(1, -1) : ""
+      this.options.zIndex = this._container.style.zIndex = (isFinite(r) ? r : 0) + t(1, -1)
     },
     _updateOpacity: function() {
       n.DomUtil.setOpacity(this._container, this.options.opacity);
@@ -952,7 +969,7 @@
       this._tiles = {}, this._tilesToLoad = 0, this.options.reuseTiles && (this._unusedTiles = []), e && this._container && (this._container.innerHTML = ""), this._initContainer()
     },
     _update: function(e) {
-      if (this._map._panTransition && this._map._panTransition._inProgress) return;
+      if (!this._map) return;
       var t = this._map.getPixelBounds(),
         r = this._map.getZoom(),
         i = this.options.tileSize;
@@ -1187,15 +1204,15 @@
         s = this._bounds.getNorthWest(),
         o = this._bounds.getSouthEast(),
         u = t._latLngToNewLayerPoint(s, e.zoom, e.center),
-        a = t._latLngToNewLayerPoint(o, e.zoom, e.center).subtract(u),
-        f = t.latLngToLayerPoint(o).subtract(t.latLngToLayerPoint(s)),
-        l = u.add(a.subtract(f).divideBy(2));
+        a = t._latLngToNewLayerPoint(o, e.zoom, e.center)._subtract(u),
+        f = t.latLngToLayerPoint(o)._subtract(t.latLngToLayerPoint(s)),
+        l = u._add(a._subtract(f)._divideBy(2));
       r.style[n.DomUtil.TRANSFORM] = n.DomUtil.getTranslateString(l) + " scale(" + i + ") "
     },
     _reset: function() {
       var e = this._image,
         t = this._map.latLngToLayerPoint(this._bounds.getNorthWest()),
-        r = this._map.latLngToLayerPoint(this._bounds.getSouthEast()).subtract(t);
+        r = this._map.latLngToLayerPoint(this._bounds.getSouthEast())._subtract(t);
       n.DomUtil.setPosition(e, t), e.style.width = r.x + "px", e.style.height = r.y + "px"
     },
     _onImageLoad: function() {
@@ -1246,7 +1263,7 @@
   }, n.Icon.Default = n.Icon.extend({
     options: {
       iconSize: new n.Point(25, 41),
-      iconAnchor: new n.Point(13, 41),
+      iconAnchor: new n.Point(12, 41),
       popupAnchor: new n.Point(1, -34),
       shadowSize: new n.Point(41, 41)
     },
@@ -1285,7 +1302,7 @@
       return e.addLayer(this), this
     },
     onRemove: function(e) {
-      this._removeIcon(), this.closePopup && this.closePopup(), e.off({
+      this._removeIcon(), this.fire("remove"), e.off({
         viewreset: this.update,
         zoomanim: this._animateZoom
       }, this), this._map = null
@@ -1294,7 +1311,9 @@
       return this._latlng
     },
     setLatLng: function(e) {
-      this._latlng = n.latLng(e), this.update(), this._popup && this._popup.setLatLng(e)
+      this._latlng = n.latLng(e), this.update(), this.fire("move", {
+        latlng: this._latlng
+      })
     },
     setZIndexOffset: function(e) {
       this.options.zIndexOffset = e, this.update()
@@ -1337,7 +1356,7 @@
       n.Handler.MarkerDrag && (this.dragging = new n.Handler.MarkerDrag(this), this.options.draggable && this.dragging.enable())
     },
     _onMouseClick: function(e) {
-      n.DomEvent.stopPropagation(e);
+      this.hasEventListeners(e.type) && n.DomEvent.stopPropagation(e);
       if (this.dragging && this.dragging.moved()) return;
       if (this._map.dragging && this._map.dragging.moved()) return;
       this.fire(e.type, {
@@ -1491,10 +1510,13 @@
       var r = n.point(this.options.icon.options.popupAnchor) || new n.Point(0, 0);
       return r = r.add(n.Popup.prototype.options.offset), t && t.offset && (r = r.add(t.offset)), t = n.Util.extend({
         offset: r
-      }, t), this._popup || this.on("click", this.openPopup, this), this._popup = (new n.Popup(t, this)).setContent(e), this
+      }, t), this._popup || this.on("click", this.openPopup, this).on("remove", this.closePopup, this).on("move", this._movePopup, this), this._popup = (new n.Popup(t, this)).setContent(e), this
     },
     unbindPopup: function() {
-      return this._popup && (this._popup = null, this.off("click", this.openPopup)), this
+      return this._popup && (this._popup = null, this.off("click", this.openPopup).off("remove", this.closePopup).off("move", this._movePopup)), this
+    },
+    _movePopup: function(e) {
+      this._popup.setLatLng(e.latlng)
     }
   }), n.Map.include({
     openPopup: function(e) {
@@ -1602,7 +1624,7 @@
       return e.addLayer(this), this
     },
     onRemove: function(e) {
-      e._pathRoot.removeChild(this._container), this._map = null, n.Browser.vml && (this._container = null, this._stroke = null, this._fill = null), e.off({
+      e._pathRoot.removeChild(this._container), this._map = null, n.Browser.vml && (this._container = null, this._stroke = null, this._fill = null), this.fire("remove"), e.off({
         viewreset: this.projectLatlngs,
         moveend: this._updatePath
       }, this)
@@ -1619,8 +1641,8 @@
       var e = n.Path.CLIP_PADDING,
         t = this.getSize(),
         r = n.DomUtil.getPosition(this._mapPane),
-        i = r.multiplyBy(-1)._subtract(t.multiplyBy(e)),
-        s = i.add(t.multiplyBy(1 + e * 2));
+        i = r.multiplyBy(-1)._subtract(t.multiplyBy(e)._round()),
+        s = i.add(t.multiplyBy(1 + e * 2)._round());
       this._pathViewport = new n.Bounds(i, s)
     }
   }), n.Path.SVG_NS = "http://www.w3.org/2000/svg", n.Browser.svg = !! document.createElementNS && !! document.createElementNS(n.Path.SVG_NS, "svg").createSVGRect, n.Path = n.Path.extend({
@@ -1628,14 +1650,15 @@
       SVG: n.Browser.svg
     },
     bringToFront: function() {
-      return this._container && this._map._pathRoot.appendChild(this._container), this
+      var e = this._map._pathRoot,
+        t = this._container;
+      return t && e.lastChild !== t && e.appendChild(t), this
     },
     bringToBack: function() {
-      if (this._container) {
-        var e = this._map._pathRoot;
-        e.insertBefore(this._container, e.firstChild)
-      }
-      return this
+      var e = this._map._pathRoot,
+        t = this._container,
+        n = e.firstChild;
+      return t && n !== t && e.insertBefore(t, n), this
     },
     getPathString: function() {},
     _createElement: function(e) {
@@ -1666,11 +1689,10 @@
     },
     _onMouseClick: function(e) {
       if (this._map.dragging && this._map.dragging.moved()) return;
-      this._fireMouseEvent(e), n.DomEvent.stopPropagation(e)
+      this._fireMouseEvent(e)
     },
     _fireMouseEvent: function(e) {
       if (!this.hasEventListeners(e.type)) return;
-      e.type === "contextmenu" && n.DomEvent.preventDefault(e);
       var t = this._map,
         r = t.mouseEventToContainerPoint(e),
         i = t.containerPointToLayerPoint(r),
@@ -1680,7 +1702,7 @@
         layerPoint: i,
         containerPoint: r,
         originalEvent: e
-      })
+      }), e.type === "contextmenu" && n.DomEvent.preventDefault(e), n.DomEvent.stopPropagation(e)
     }
   }), n.Map.include({
     _initPathRoot: function() {
@@ -1714,7 +1736,10 @@
   }), n.Path.include({
     bindPopup: function(e, t) {
       if (!this._popup || this._popup.options !== t) this._popup = new n.Popup(t, this);
-      return this._popup.setContent(e), this._openPopupAdded || (this.on("click", this._openPopup, this), this._openPopupAdded = !0), this
+      return this._popup.setContent(e), this._popupHandlersAdded || (this.on("click", this._openPopup, this).on("remove", this._closePopup, this), this._popupHandlersAdded = !0), this
+    },
+    unbindPopup: function() {
+      return this._popup && (this._popup = null, this.off("click", this.openPopup).off("remove", this.closePopup)), this
     },
     openPopup: function(e) {
       return this._popup && (e = e || this._latlng || this._latlngs[Math.floor(this._latlngs.length / 2)], this._openPopup({
@@ -1723,8 +1748,12 @@
     },
     _openPopup: function(e) {
       this._popup.setLatLng(e.latlng), this._map.openPopup(this._popup)
+    },
+    _closePopup: function() {
+      this._popup._close()
     }
-  }), n.Browser.vml = function() {
+  }), n.Browser.vml = !n.Browser.svg &&
+  function() {
     try {
       var e = document.createElement("div");
       e.innerHTML = '<v:shape adj="1"/>';
@@ -1790,10 +1819,10 @@
       e.off("viewreset", this.projectLatlngs, this).off("moveend", this._updatePath, this), this._requestUpdate(), this._map = null
     },
     _requestUpdate: function() {
-      this._map && (n.Util.cancelAnimFrame(this._fireMapMoveEnd), this._updateRequest = n.Util.requestAnimFrame(this._fireMapMoveEnd, this._map))
+      this._map && !n.Path._updateRequest && (n.Path._updateRequest = n.Util.requestAnimFrame(this._fireMapMoveEnd, this._map))
     },
     _fireMapMoveEnd: function() {
-      this.fire("moveend")
+      n.Path._updateRequest = null, this.fire("moveend")
     },
     _initElements: function() {
       this._map._initPathRoot(), this._ctx = this._map._canvasCtx
@@ -2115,14 +2144,12 @@
       this._point = this._map.latLngToLayerPoint(this._latlng), this._radius = Math.max(Math.round(this._point.x - r.x), 1)
     },
     getBounds: function() {
-      var e = this._map,
-        t = this._radius * Math.cos(Math.PI / 4),
-        r = e.project(this._latlng),
-        i = new n.Point(r.x - t, r.y + t),
-        s = new n.Point(r.x + t, r.y - t),
-        o = e.unproject(i),
-        u = e.unproject(s);
-      return new n.LatLngBounds(o, u)
+      var e = this._getLngRadius(),
+        t = this._mRadius / 40075017 * 360,
+        r = this._latlng,
+        i = new n.LatLng(r.lat - t, r.lng - e),
+        s = new n.LatLng(r.lat + t, r.lng + e);
+      return new n.LatLngBounds(i, s)
     },
     getLatLng: function() {
       return this._latlng
@@ -2135,10 +2162,11 @@
     getRadius: function() {
       return this._mRadius
     },
+    _getLatRadius: function() {
+      return this._mRadius / 40075017 * 360
+    },
     _getLngRadius: function() {
-      var e = 40075017,
-        t = e * Math.cos(n.LatLng.DEG_TO_RAD * this._latlng.lat);
-      return this._mRadius / t * 360
+      return this._getLatRadius() / Math.cos(n.LatLng.DEG_TO_RAD * this._latlng.lat)
     },
     _checkIfEmpty: function() {
       if (!this._map) return !1;
@@ -2275,7 +2303,7 @@
         u, a, f;
       return e[o] ? this : (u = function(t) {
         return r.call(i || e, t || n.DomEvent._getEvent())
-      }, n.Browser.touch && t === "dblclick" && this.addDoubleTapListener ? this.addDoubleTapListener(e, u, s) : ("addEventListener" in e ? t === "mousewheel" ? (e.addEventListener("DOMMouseScroll", u, !1), e.addEventListener(t, u, !1)) : t === "mouseenter" || t === "mouseleave" ? (a = u, f = t === "mouseenter" ? "mouseover" : "mouseout", u = function(t) {
+      }, n.Browser.msTouch && t.indexOf("touch") === 0 ? this.addMsTouchListener(e, t, u, s) : n.Browser.touch && t === "dblclick" && this.addDoubleTapListener ? this.addDoubleTapListener(e, u, s) : ("addEventListener" in e ? t === "mousewheel" ? (e.addEventListener("DOMMouseScroll", u, !1), e.addEventListener(t, u, !1)) : t === "mouseenter" || t === "mouseleave" ? (a = u, f = t === "mouseenter" ? "mouseover" : "mouseout", u = function(t) {
         if (!n.DomEvent._checkMouse(e, t)) return;
         return a(t)
       }, e.addEventListener(f, u, !1)) : e.addEventListener(t, u, !1) : "attachEvent" in e && e.attachEvent("on" + t, u), e[o] = u, this))
@@ -2285,7 +2313,7 @@
         s = "_leaflet_" + t + i,
         o = e[s];
       if (!o) return;
-      return n.Browser.touch && t === "dblclick" && this.removeDoubleTapListener ? this.removeDoubleTapListener(e, i) : "removeEventListener" in e ? t === "mousewheel" ? (e.removeEventListener("DOMMouseScroll", o, !1), e.removeEventListener(t, o, !1)) : t === "mouseenter" || t === "mouseleave" ? e.removeEventListener(t === "mouseenter" ? "mouseover" : "mouseout", o, !1) : e.removeEventListener(t, o, !1) : "detachEvent" in e && e.detachEvent("on" + t, o), e[s] = null, this
+      return n.Browser.msTouch && t.indexOf("touch") === 0 ? this.removeMsTouchListener(e, t, i) : n.Browser.touch && t === "dblclick" && this.removeDoubleTapListener ? this.removeDoubleTapListener(e, i) : "removeEventListener" in e ? t === "mousewheel" ? (e.removeEventListener("DOMMouseScroll", o, !1), e.removeEventListener(t, o, !1)) : t === "mouseenter" || t === "mouseleave" ? e.removeEventListener(t === "mouseenter" ? "mouseover" : "mouseout", o, !1) : e.removeEventListener(t, o, !1) : "detachEvent" in e && e.detachEvent("on" + t, o), e[s] = null, this
     },
     stopPropagation: function(e) {
       return e.stopPropagation ? e.stopPropagation() : e.cancelBubble = !0, this
@@ -2355,6 +2383,8 @@
     },
     _onDown: function(e) {
       if (!n.Browser.touch && e.shiftKey || e.which !== 1 && e.button !== 1 && !e.touches) return;
+      n.DomEvent.preventDefault(e);
+      if (n.Draggable._disabled) return;
       this._simulateClick = !0;
       if (e.touches && e.touches.length > 1) {
         this._simulateClick = !1;
@@ -2362,9 +2392,9 @@
       }
       var t = e.touches && e.touches.length === 1 ? e.touches[0] : e,
         r = t.target;
-      n.DomEvent.preventDefault(e), n.Browser.touch && r.tagName.toLowerCase() === "a" && n.DomUtil.addClass(r, "leaflet-active"), this._moved = !1;
+      n.Browser.touch && r.tagName.toLowerCase() === "a" && n.DomUtil.addClass(r, "leaflet-active"), this._moved = !1;
       if (this._moving) return;
-      this._startPos = this._newPos = n.DomUtil.getPosition(this._element), this._startPoint = new n.Point(t.clientX, t.clientY), n.DomEvent.on(document, n.Draggable.MOVE, this._onMove, this), n.DomEvent.on(document, n.Draggable.END, this._onUp, this)
+      this._startPoint = new n.Point(t.clientX, t.clientY), this._startPos = this._newPos = n.DomUtil.getPosition(this._element), n.DomEvent.on(document, n.Draggable.MOVE, this._onMove, this), n.DomEvent.on(document, n.Draggable.END, this._onUp, this)
     },
     _onMove: function(e) {
       if (e.touches && e.touches.length > 1) return;
@@ -2372,19 +2402,20 @@
         r = new n.Point(t.clientX, t.clientY),
         i = r.subtract(this._startPoint);
       if (!i.x && !i.y) return;
-      n.DomEvent.preventDefault(e), this._moved || (this.fire("dragstart"), this._moved = !0, n.Browser.touch || (n.DomUtil.disableTextSelection(), this._setMovingCursor())), this._newPos = this._startPos.add(i), this._moving = !0, n.Util.cancelAnimFrame(this._animRequest), this._animRequest = n.Util.requestAnimFrame(this._updatePosition, this, !0, this._dragStartTarget)
+      n.DomEvent.preventDefault(e), this._moved || (this.fire("dragstart"), this._moved = !0, this._startPos = n.DomUtil.getPosition(this._element).subtract(i), n.Browser.touch || (n.DomUtil.disableTextSelection(), this._setMovingCursor())), this._newPos = this._startPos.add(i), this._moving = !0, n.Util.cancelAnimFrame(this._animRequest), this._animRequest = n.Util.requestAnimFrame(this._updatePosition, this, !0, this._dragStartTarget)
     },
     _updatePosition: function() {
       this.fire("predrag"), n.DomUtil.setPosition(this._element, this._newPos), this.fire("drag")
     },
     _onUp: function(e) {
+      var t;
       if (this._simulateClick && e.changedTouches) {
-        var t = e.changedTouches[0],
-          r = t.target,
-          i = this._newPos && this._newPos.distanceTo(this._startPos) || 0;
-        r.tagName.toLowerCase() === "a" && n.DomUtil.removeClass(r, "leaflet-active"), i < n.Draggable.TAP_TOLERANCE && this._simulateEvent("click", t)
+        var r = e.changedTouches[0],
+          i = r.target,
+          s = this._newPos && this._newPos.distanceTo(this._startPos) || 0;
+        i.tagName.toLowerCase() === "a" && n.DomUtil.removeClass(i, "leaflet-active"), s < n.Draggable.TAP_TOLERANCE && (t = r)
       }
-      n.Browser.touch || (n.DomUtil.enableTextSelection(), this._restoreCursor()), n.DomEvent.off(document, n.Draggable.MOVE, this._onMove), n.DomEvent.off(document, n.Draggable.END, this._onUp), this._moved && (n.Util.cancelAnimFrame(this._animRequest), this.fire("dragend")), this._moving = !1
+      n.Browser.touch || (n.DomUtil.enableTextSelection(), this._restoreCursor()), n.DomEvent.off(document, n.Draggable.MOVE, this._onMove), n.DomEvent.off(document, n.Draggable.END, this._onUp), this._moved && (n.Util.cancelAnimFrame(this._animRequest), this.fire("dragend")), this._moving = !1, t && (this._moved = !1, this._simulateEvent("click", t))
     },
     _setMovingCursor: function() {
       n.DomUtil.addClass(document.body, "leaflet-dragging")
@@ -2414,9 +2445,9 @@
   }), n.Map.mergeOptions({
     dragging: !0,
     inertia: !n.Browser.android23,
-    inertiaDeceleration: 3e3,
-    inertiaMaxSpeed: 1500,
-    inertiaThreshold: n.Browser.touch ? 32 : 14,
+    inertiaDeceleration: 3400,
+    inertiaMaxSpeed: 6e3,
+    inertiaThreshold: n.Browser.touch ? 32 : 18,
     worldCopyJump: !0
   }), n.Map.Drag = n.Handler.extend({
     addHooks: function() {
@@ -2439,7 +2470,7 @@
     },
     _onDragStart: function() {
       var e = this._map;
-      e.fire("movestart").fire("dragstart"), e._panTransition && e._panTransition._onTransitionEnd(!0), e.options.inertia && (this._positions = [], this._times = [])
+      e._panAnim && e._panAnim.stop(), e.fire("movestart").fire("dragstart"), e.options.inertia && (this._positions = [], this._times = [])
     },
     _onDrag: function() {
       if (this._map.options.inertia) {
@@ -2450,7 +2481,7 @@
       this._map.fire("move").fire("drag")
     },
     _onViewReset: function() {
-      var e = this._map.getSize().divideBy(2),
+      var e = this._map.getSize()._divideBy(2),
         t = this._map.latLngToLayerPoint(new n.LatLng(0, 0));
       this._initialWorldOffset = t.subtract(e).x, this._worldWidth = this._map.project(new n.LatLng(0, 180)).x
     },
@@ -2479,13 +2510,9 @@
           l = Math.min(r.inertiaMaxSpeed, f),
           c = a.multiplyBy(l / f),
           h = l / r.inertiaDeceleration,
-          p = c.multiplyBy(-h / 2).round(),
-          d = {
-            duration: h,
-            easing: "ease-out"
-          };
+          p = c.multiplyBy(-h / 2).round();
         n.Util.requestAnimFrame(n.Util.bind(function() {
-          this._map.panBy(p, d)
+          this._map.panBy(p, h)
         }, this))
       }
       e.fire("dragend"), r.maxBounds && n.Util.requestAnimFrame(this._panInsideMaxBounds, e, !0, e._container)
@@ -2506,7 +2533,7 @@
       this.setView(e.latlng, this._zoom + 1)
     }
   }), n.Map.addInitHook("addHandler", "doubleClickZoom", n.Map.DoubleClickZoom), n.Map.mergeOptions({
-    scrollWheelZoom: !n.Browser.touch
+    scrollWheelZoom: !n.Browser.touch || n.Browser.msTouch
   }), n.Map.ScrollWheelZoom = n.Handler.extend({
     addHooks: function() {
       n.DomEvent.on(this._map._container, "mousewheel", this._onWheelScroll, this), this._delta = 0
@@ -2516,47 +2543,147 @@
     },
     _onWheelScroll: function(e) {
       var t = n.DomEvent.getWheelDelta(e);
-      this._delta += t, this._lastMousePos = this._map.mouseEventToContainerPoint(e), clearTimeout(this._timer), this._timer = setTimeout(n.Util.bind(this._performZoom, this), 40), n.DomEvent.preventDefault(e)
+      this._delta += t, this._lastMousePos = this._map.mouseEventToContainerPoint(e), this._startTime || (this._startTime = +(new Date));
+      var r = Math.max(40 - (+(new Date) - this._startTime), 0);
+      clearTimeout(this._timer), this._timer = setTimeout(n.Util.bind(this._performZoom, this), r), n.DomEvent.preventDefault(e), n.DomEvent.stopPropagation(e)
     },
     _performZoom: function() {
       var e = this._map,
         t = Math.round(this._delta),
         n = e.getZoom();
-      t = Math.max(Math.min(t, 4), -4), t = e._limitZoom(n + t) - n, this._delta = 0;
+      t = Math.max(Math.min(t, 4), -4), t = e._limitZoom(n + t) - n, this._delta = 0, this._startTime = null;
       if (!t) return;
       var r = n + t,
-        i = this._getCenterForScrollWheelZoom(this._lastMousePos, r);
+        i = this._getCenterForScrollWheelZoom(r);
       e.setView(i, r)
     },
-    _getCenterForScrollWheelZoom: function(e, t) {
-      var n = this._map,
-        r = n.getZoomScale(t),
-        i = n.getSize().divideBy(2),
-        s = e.subtract(i).multiplyBy(1 - 1 / r),
-        o = n._getTopLeftPoint().add(i).add(s);
-      return n.unproject(o)
+    _getCenterForScrollWheelZoom: function(e) {
+      var t = this._map,
+        n = t.getZoomScale(e),
+        r = t.getSize()._divideBy(2),
+        i = this._lastMousePos._subtract(r)._multiplyBy(1 - 1 / n),
+        s = t._getTopLeftPoint()._add(r)._add(i);
+      return t.unproject(s)
     }
   }), n.Map.addInitHook("addHandler", "scrollWheelZoom", n.Map.ScrollWheelZoom), n.Util.extend(n.DomEvent, {
-    addDoubleTapListener: function(e, t, n) {
-      function l(e) {
-        if (e.touches.length !== 1) return;
-        var t = Date.now(),
-          n = t - (r || t);
-        o = e.touches[0], i = n > 0 && n <= s, r = t
+    _touchstart: n.Browser.msTouch ? "MSPointerDown" : "touchstart",
+    _touchend: n.Browser.msTouch ? "MSPointerUp" : "touchend",
+    addDoubleTapListener: function(e, t, r) {
+      function h(e) {
+        var t;
+        n.Browser.msTouch ? (c.push(e.pointerId), t = c.length) : t = e.touches.length;
+        if (t > 1) return;
+        var r = Date.now(),
+          a = r - (i || r);
+        u = e.touches ? e.touches[0] : e, s = a > 0 && a <= o, i = r
       }
-      function c(e) {
-        i && (o.type = "dblclick", t(o), r = null)
+      function p(e) {
+        if (n.Browser.msTouch) {
+          var r = c.indexOf(e.pointerId);
+          if (r === -1) return;
+          c.splice(r, 1)
+        }
+        if (s) {
+          if (n.Browser.msTouch) {
+            var o = {},
+              a;
+            for (var f in u) a = u[f], typeof a == "function" ? o[f] = a.bind(u) : o[f] = a;
+            u = o
+          }
+          u.type = "dblclick", t(u), i = null
+        }
       }
-      var r, i = !1,
-        s = 250,
-        o, u = "_leaflet_",
-        a = "touchstart",
-        f = "touchend";
-      return e[u + a + n] = l, e[u + f + n] = c, e.addEventListener(a, l, !1), e.addEventListener(f, c, !1), this
+      var i, s = !1,
+        o = 250,
+        u, a = "_leaflet_",
+        f = this._touchstart,
+        l = this._touchend,
+        c = [];
+      e[a + f + r] = h, e[a + l + r] = p;
+      var d = n.Browser.msTouch ? document.documentElement : e;
+      return e.addEventListener(f, h, !1), d.addEventListener(l, p, !1), n.Browser.msTouch && d.addEventListener("MSPointerCancel", p, !1), this
     },
     removeDoubleTapListener: function(e, t) {
-      var n = "_leaflet_";
-      return e.removeEventListener(e, e[n + "touchstart" + t], !1), e.removeEventListener(e, e[n + "touchend" + t], !1), this
+      var r = "_leaflet_";
+      return e.removeEventListener(this._touchstart, e[r + this._touchstart + t], !1), (n.Browser.msTouch ? document.documentElement : e).removeEventListener(this._touchend, e[r + this._touchend + t], !1), n.Browser.msTouch && document.documentElement.removeEventListener("MSPointerCancel", e[r + this._touchend + t], !1), this
+    }
+  }), n.Util.extend(n.DomEvent, {
+    _msTouches: [],
+    _msDocumentListener: !1,
+    addMsTouchListener: function(e, t, n, r) {
+      switch (t) {
+      case "touchstart":
+        return this.addMsTouchListenerStart(e, t, n, r);
+      case "touchend":
+        return this.addMsTouchListenerEnd(e, t, n, r);
+      case "touchmove":
+        return this.addMsTouchListenerMove(e, t, n, r);
+      default:
+        throw "Unknown touch event type"
+      }
+    },
+    addMsTouchListenerStart: function(e, t, n, r) {
+      var i = "_leaflet_",
+        s = this._msTouches,
+        o = function(e) {
+          var t = !1;
+          for (var r = 0; r < s.length; r++) if (s[r].pointerId === e.pointerId) {
+            t = !0;
+            break
+          }
+          t || s.push(e), e.touches = s.slice(), e.changedTouches = [e], n(e)
+        };
+      e[i + "touchstart" + r] = o, e.addEventListener("MSPointerDown", o, !1);
+      if (!this._msDocumentListener) {
+        var u = function(e) {
+            for (var t = 0; t < s.length; t++) if (s[t].pointerId === e.pointerId) {
+              s.splice(t, 1);
+              break
+            }
+          };
+        document.documentElement.addEventListener("MSPointerUp", u, !1), document.documentElement.addEventListener("MSPointerCancel", u, !1), this._msDocumentListener = !0
+      }
+      return this
+    },
+    addMsTouchListenerMove: function(e, t, n, r) {
+      var i = "_leaflet_",
+        s = this._msTouches,
+        o = function(e) {
+          if (e.pointerType === e.MSPOINTER_TYPE_MOUSE && e.buttons === 0) return;
+          for (var t = 0; t < s.length; t++) if (s[t].pointerId === e.pointerId) {
+            s[t] = e;
+            break
+          }
+          e.touches = s.slice(), e.changedTouches = [e], n(e)
+        };
+      return e[i + "touchmove" + r] = o, e.addEventListener("MSPointerMove", o, !1), this
+    },
+    addMsTouchListenerEnd: function(e, t, n, r) {
+      var i = "_leaflet_",
+        s = this._msTouches,
+        o = function(e) {
+          for (var t = 0; t < s.length; t++) if (s[t].pointerId === e.pointerId) {
+            s.splice(t, 1);
+            break
+          }
+          e.touches = s.slice(), e.changedTouches = [e], n(e)
+        };
+      return e[i + "touchend" + r] = o, e.addEventListener("MSPointerUp", o, !1), e.addEventListener("MSPointerCancel", o, !1), this
+    },
+    removeMsTouchListener: function(e, t, n) {
+      var r = "_leaflet_",
+        i = e[r + t + n];
+      switch (t) {
+      case "touchstart":
+        e.removeEventListener("MSPointerDown", i, !1);
+        break;
+      case "touchmove":
+        e.removeEventListener("MSPointerMove", i, !1);
+        break;
+      case "touchend":
+        e.removeEventListener("MSPointerUp", i, !1), e.removeEventListener("MSPointerCancel", i, !1)
+      }
+      return this
     }
   }), n.Map.mergeOptions({
     touchZoom: n.Browser.touch && !n.Browser.android23
@@ -2573,14 +2700,14 @@
       var r = t.mouseEventToLayerPoint(e.touches[0]),
         i = t.mouseEventToLayerPoint(e.touches[1]),
         s = t._getCenterLayerPoint();
-      this._startCenter = r.add(i).divideBy(2, !0), this._startDist = r.distanceTo(i), this._moved = !1, this._zooming = !0, this._centerOffset = s.subtract(this._startCenter), n.DomEvent.on(document, "touchmove", this._onTouchMove, this).on(document, "touchend", this._onTouchEnd, this), n.DomEvent.preventDefault(e)
+      this._startCenter = r.add(i)._divideBy(2), this._startDist = r.distanceTo(i), this._moved = !1, this._zooming = !0, this._centerOffset = s.subtract(this._startCenter), t._panAnim && t._panAnim.stop(), n.DomEvent.on(document, "touchmove", this._onTouchMove, this).on(document, "touchend", this._onTouchEnd, this), n.DomEvent.preventDefault(e)
     },
     _onTouchMove: function(e) {
       if (!e.touches || e.touches.length !== 2) return;
       var t = this._map,
         r = t.mouseEventToLayerPoint(e.touches[0]),
         i = t.mouseEventToLayerPoint(e.touches[1]);
-      this._scale = r.distanceTo(i) / this._startDist, this._delta = r.add(i).divideBy(2, !0).subtract(this._startCenter);
+      this._scale = r.distanceTo(i) / this._startDist, this._delta = r._add(i)._divideBy(2)._subtract(this._startCenter);
       if (this._scale === 1) return;
       this._moved || (n.DomUtil.addClass(t._mapPane, "leaflet-zoom-anim leaflet-touching"), t.fire("movestart").fire("zoomstart")._prepareTileBg(), this._moved = !0), n.Util.cancelAnimFrame(this._animRequest), this._animRequest = n.Util.requestAnimFrame(this._updateOnMove, this, !0, this._map._container), n.DomEvent.preventDefault(e)
     },
@@ -2634,7 +2761,7 @@
         i = this._map.mouseEventToLayerPoint(e),
         s = i.subtract(t),
         o = new n.Point(Math.min(i.x, t.x), Math.min(i.y, t.y));
-      n.DomUtil.setPosition(r, o), r.style.width = Math.abs(s.x) - 4 + "px", r.style.height = Math.abs(s.y) - 4 + "px"
+      n.DomUtil.setPosition(r, o), r.style.width = Math.max(0, Math.abs(s.x) - 4) + "px", r.style.height = Math.max(0, Math.abs(s.y) - 4) + "px"
     },
     _onMouseUp: function(e) {
       this._pane.removeChild(this._box), this._container.style.cursor = "", n.DomUtil.enableTextSelection(), n.DomEvent.off(document, "mousemove", this._onMouseMove).off(document, "mouseup", this._onMouseUp);
@@ -2728,8 +2855,13 @@
       this._marker.closePopup().fire("movestart").fire("dragstart")
     },
     _onDrag: function(e) {
-      var t = n.DomUtil.getPosition(this._marker._icon);
-      this._marker._shadow && n.DomUtil.setPosition(this._marker._shadow, t), this._marker._latlng = this._marker._map.layerPointToLatLng(t), this._marker.fire("move").fire("drag")
+      var t = this._marker,
+        r = t._shadow,
+        i = n.DomUtil.getPosition(t._icon),
+        s = t._map.layerPointToLatLng(i);
+      r && n.DomUtil.setPosition(r, i), t._latlng = s, t.fire("move", {
+        latlng: s
+      }).fire("drag")
     },
     _onDragEnd: function() {
       this._marker.fire("moveend").fire("dragend")
@@ -2782,7 +2914,7 @@
       if (this._poly._latlngs.length < 3) return;
       var t = e.target,
         n = t._index;
-      t._prev && t._next && (this._createMiddleMarker(t._prev, t._next), this._updatePrevNext(t._prev, t._next)), this._markerGroup.removeLayer(t), t._middleLeft && this._markerGroup.removeLayer(t._middleLeft), t._middleRight && this._markerGroup.removeLayer(t._middleRight), this._markers.splice(n, 1), this._poly.spliceLatLngs(n, 1), this._updateIndexes(n, -1), this._poly.fire("edit")
+      t._prev && t._next ? this._createMiddleMarker(t._prev, t._next) : t._prev ? t._next || (t._prev._middleRight = null) : t._next._middleLeft = null, this._updatePrevNext(t._prev, t._next), this._markerGroup.removeLayer(t), t._middleLeft && this._markerGroup.removeLayer(t._middleLeft), t._middleRight && this._markerGroup.removeLayer(t._middleRight), this._markers.splice(n, 1), this._poly.spliceLatLngs(n, 1), this._updateIndexes(n, -1), this._poly.fire("edit")
     },
     _updateIndexes: function(e, t) {
       this._markerGroup.eachLayer(function(n) {
@@ -2803,13 +2935,13 @@
       }, r.on("click", i, this).on("dragstart", s, this).on("dragend", o, this), this._markerGroup.addLayer(r)
     },
     _updatePrevNext: function(e, t) {
-      e._next = t, t._prev = e
+      e && (e._next = t), t && (t._prev = e)
     },
     _getMiddleLatLng: function(e, t) {
       var n = this._poly._map,
         r = n.latLngToLayerPoint(e.getLatLng()),
         i = n.latLngToLayerPoint(t.getLatLng());
-      return n.layerPointToLatLng(r._add(i).divideBy(2))
+      return n.layerPointToLatLng(r._add(i)._divideBy(2))
     }
   }), n.Control = n.Class.extend({
     options: {
@@ -2863,11 +2995,17 @@
     onAdd: function(e) {
       var t = "leaflet-control-zoom",
         r = n.DomUtil.create("div", t);
-      return this._createButton("Zoom in", t + "-in", r, e.zoomIn, e), this._createButton("Zoom out", t + "-out", r, e.zoomOut, e), r
+      return this._map = e, this._createButton("Zoom in", t + "-in", r, this._zoomIn, this), this._createButton("Zoom out", t + "-out", r, this._zoomOut, this), r
+    },
+    _zoomIn: function(e) {
+      this._map.zoomIn(e.shiftKey ? 3 : 1)
+    },
+    _zoomOut: function(e) {
+      this._map.zoomOut(e.shiftKey ? 3 : 1)
     },
     _createButton: function(e, t, r, i, s) {
       var o = n.DomUtil.create("a", t, r);
-      return o.href = "#", o.title = e, n.DomEvent.on(o, "click", n.DomEvent.stopPropagation).on(o, "click", n.DomEvent.preventDefault).on(o, "click", i, s).on(o, "dblclick", n.DomEvent.stopPropagation), o
+      return o.href = "#", o.title = e, n.DomEvent.on(o, "click", n.DomEvent.stopPropagation).on(o, "mousedown", n.DomEvent.stopPropagation).on(o, "dblclick", n.DomEvent.stopPropagation).on(o, "click", n.DomEvent.preventDefault).on(o, "click", i, s), o
     }
   }), n.Map.mergeOptions({
     zoomControl: !0
@@ -2932,7 +3070,7 @@
       var t = "leaflet-control-scale",
         r = n.DomUtil.create("div", t),
         i = this.options;
-      return this._addScales(i, t, r), e.on(i.updateWhenIdle ? "moveend" : "move", this._update, this), this._update(), r
+      return this._addScales(i, t, r), e.on(i.updateWhenIdle ? "moveend" : "move", this._update, this), e.whenReady(this._update, this), r
     },
     onRemove: function(e) {
       e.off(this.options.updateWhenIdle ? "moveend" : "move", this._update, this)
@@ -3029,7 +3167,7 @@
       this._separator.style.display = t && e ? "" : "none"
     },
     _createRadioElement: function(e, t) {
-      var n = '<input type="radio" name="' + e + '"';
+      var n = '<input type="radio" class="leaflet-control-layers-selector" name="' + e + '"';
       t && (n += ' checked="checked"'), n += "/>";
       var r = document.createElement("div");
       return r.innerHTML = n, r.firstChild
@@ -3037,16 +3175,20 @@
     _addItem: function(e) {
       var t = document.createElement("label"),
         r, i = this._map.hasLayer(e.layer);
-      e.overlay ? (r = document.createElement("input"), r.type = "checkbox", r.defaultChecked = i) : r = this._createRadioElement("leaflet-base-layers", i), r.layerId = n.Util.stamp(e.layer), n.DomEvent.on(r, "click", this._onInputClick, this);
-      var s = document.createTextNode(" " + e.name);
-      t.appendChild(r), t.appendChild(s);
+      e.overlay ? (r = document.createElement("input"), r.type = "checkbox", r.className = "leaflet-control-layers-selector", r.defaultChecked = i) : r = this._createRadioElement("leaflet-base-layers", i), r.layerId = n.Util.stamp(e.layer), n.DomEvent.on(r, "click", this._onInputClick, this);
+      var s = document.createElement("span");
+      s.innerHTML = " " + e.name, t.appendChild(r), t.appendChild(s);
       var o = e.overlay ? this._overlaysList : this._baseLayersList;
       o.appendChild(t)
     },
     _onInputClick: function() {
       var e, t, n, r = this._form.getElementsByTagName("input"),
-        i = r.length;
-      for (e = 0; e < i; e++) t = r[e], n = this._layers[t.layerId], t.checked ? this._map.addLayer(n.layer, !n.overlay) : this._map.removeLayer(n.layer)
+        i = r.length,
+        s;
+      for (e = 0; e < i; e++) t = r[e], n = this._layers[t.layerId], t.checked && !this._map.hasLayer(n.layer) ? (this._map.addLayer(n.layer), n.overlay || (s = n.layer)) : !t.checked && this._map.hasLayer(n.layer) && this._map.removeLayer(n.layer);
+      s && this._map.fire("baselayerchange", {
+        layer: s
+      })
     },
     _expand: function() {
       n.DomUtil.addClass(this._container, "leaflet-control-layers-expanded")
@@ -3056,149 +3198,46 @@
     }
   }), n.control.layers = function(e, t, r) {
     return new n.Control.Layers(e, t, r)
-  }, n.Transition = n.Class.extend({
+  }, n.PosAnimation = n.Class.extend({
     includes: n.Mixin.Events,
-    statics: {
-      CUSTOM_PROPS_SETTERS: {
-        position: n.DomUtil.setPosition
-      },
-      implemented: function() {
-        return n.Transition.NATIVE || n.Transition.TIMER
-      }
+    run: function(e, t, r, i) {
+      this.stop(), this._el = e, this._inProgress = !0, this.fire("start"), e.style[n.DomUtil.TRANSITION] = "all " + (r || .25) + "s " + (i || "ease-out"), n.DomEvent.on(e, n.DomUtil.TRANSITION_END, this._onTransitionEnd, this), n.DomUtil.setPosition(e, t), n.Util.falseFn(e.offsetWidth), this._stepTimer = setInterval(n.Util.bind(this.fire, this, "step"), 50)
     },
-    options: {
-      easing: "ease",
-      duration: .5
+    stop: function() {
+      if (!this._inProgress) return;
+      n.DomUtil.setPosition(this._el, this._getPos()), this._onTransitionEnd()
     },
-    _setProperty: function(e, t) {
-      var r = n.Transition.CUSTOM_PROPS_SETTERS;
-      e in r ? r[e](this._el, t) : this._el.style[e] = t
+    _transformRe: /(-?[\d\.]+), (-?[\d\.]+)\)/,
+    _getPos: function() {
+      var t, r, i, s = this._el,
+        o = e.getComputedStyle(s);
+      return n.Browser.any3d ? (i = o[n.DomUtil.TRANSFORM].match(this._transformRe), t = parseFloat(i[1]), r = parseFloat(i[2])) : (t = parseFloat(o.left), r = parseFloat(o.top)), new n.Point(t, r, !0)
+    },
+    _onTransitionEnd: function() {
+      n.DomEvent.off(this._el, n.DomUtil.TRANSITION_END, this._onTransitionEnd, this);
+      if (!this._inProgress) return;
+      this._inProgress = !1, this._el.style[n.DomUtil.TRANSITION] = "", clearInterval(this._stepTimer), this.fire("step").fire("end")
     }
-  }), n.Transition = n.Transition.extend({
-    statics: function() {
-      var e = n.DomUtil.TRANSITION,
-        t = e === "webkitTransition" || e === "OTransition" ? e + "End" : "transitionend";
-      return {
-        NATIVE: !! e,
-        TRANSITION: e,
-        PROPERTY: e + "Property",
-        DURATION: e + "Duration",
-        EASING: e + "TimingFunction",
-        END: t,
-        CUSTOM_PROPS_PROPERTIES: {
-          position: n.Browser.any3d ? n.DomUtil.TRANSFORM : "top, left"
-        }
-      }
-    }(),
-    options: {
-      fakeStepInterval: 100
-    },
-    initialize: function(e, t) {
-      this._el = e, n.Util.setOptions(this, t), n.DomEvent.on(e, n.Transition.END, this._onTransitionEnd, this), this._onFakeStep = n.Util.bind(this._onFakeStep, this)
-    },
-    run: function(e) {
-      var t, r = [],
-        i = n.Transition.CUSTOM_PROPS_PROPERTIES;
-      for (t in e) e.hasOwnProperty(t) && (t = i[t] ? i[t] : t, t = this._dasherize(t), r.push(t));
-      this._el.style[n.Transition.DURATION] = this.options.duration + "s", this._el.style[n.Transition.EASING] = this.options.easing, this._el.style[n.Transition.PROPERTY] = "all";
-      for (t in e) e.hasOwnProperty(t) && this._setProperty(t, e[t]);
-      n.Util.falseFn(this._el.offsetWidth), this._inProgress = !0, n.Browser.mobileWebkit && (this.backupEventFire = setTimeout(n.Util.bind(this._onBackupFireEnd, this), this.options.duration * 1.2 * 1e3)), n.Transition.NATIVE ? (clearInterval(this._timer), this._timer = setInterval(this._onFakeStep, this.options.fakeStepInterval)) : this._onTransitionEnd()
-    },
-    _dasherize: function() {
-      function t(e) {
-        return "-" + e.toLowerCase()
-      }
-      var e = /([A-Z])/g;
-      return function(n) {
-        return n.replace(e, t)
-      }
-    }(),
-    _onFakeStep: function() {
-      this.fire("step")
-    },
-    _onTransitionEnd: function(e) {
-      this._inProgress && (this._inProgress = !1, clearInterval(this._timer), this._el.style[n.Transition.TRANSITION] = "", clearTimeout(this.backupEventFire), delete this.backupEventFire, this.fire("step"), e && e.type && this.fire("end"))
-    },
-    _onBackupFireEnd: function() {
-      var e = document.createEvent("Event");
-      e.initEvent(n.Transition.END, !0, !1), this._el.dispatchEvent(e)
-    }
-  }), n.Transition = n.Transition.NATIVE ? n.Transition : n.Transition.extend({
-    statics: {
-      getTime: Date.now ||
-      function() {
-        return +(new Date)
-      },
-      TIMER: !0,
-      EASINGS: {
-        linear: function(e) {
-          return e
-        },
-        "ease-out": function(e) {
-          return e * (2 - e)
-        }
-      },
-      CUSTOM_PROPS_GETTERS: {
-        position: n.DomUtil.getPosition
-      },
-      UNIT_RE: /^[\d\.]+(\D*)$/
-    },
-    options: {
-      fps: 50
-    },
-    initialize: function(e, t) {
-      this._el = e, n.Util.extend(this.options, t), this._easing = n.Transition.EASINGS[this.options.easing] || n.Transition.EASINGS["ease-out"], this._step = n.Util.bind(this._step, this), this._interval = Math.round(1e3 / this.options.fps)
-    },
-    run: function(e) {
-      this._props = {};
-      var t = n.Transition.CUSTOM_PROPS_GETTERS,
-        r = n.Transition.UNIT_RE;
-      this.fire("start");
-      for (var i in e) if (e.hasOwnProperty(i)) {
-        var s = {};
-        if (i in t) s.from = t[i](this._el);
-        else {
-          var o = this._el.style[i].match(r);
-          s.from = parseFloat(o[0]), s.unit = o[1]
-        }
-        s.to = e[i], this._props[i] = s
-      }
-      clearInterval(this._timer), this._timer = setInterval(this._step, this._interval), this._startTime = n.Transition.getTime()
-    },
-    _step: function() {
-      var e = n.Transition.getTime(),
-        t = e - this._startTime,
-        r = this.options.duration * 1e3;
-      t < r ? this._runFrame(this._easing(t / r)) : (this._runFrame(1), this._complete())
-    },
-    _runFrame: function(e) {
-      var t = n.Transition.CUSTOM_PROPS_SETTERS,
-        r, i, s;
-      for (r in this._props) this._props.hasOwnProperty(r) && (i = this._props[r], r in t ? (s = i.to.subtract(i.from).multiplyBy(e).add(i.from), t[r](this._el, s)) : this._el.style[r] = (i.to - i.from) * e + i.from + i.unit);
-      this.fire("step")
-    },
-    _complete: function() {
-      clearInterval(this._timer), this.fire("end")
-    }
-  }), n.Map.include(!n.Transition || !n.Transition.implemented() ? {} : {
+  }), n.Map.include({
     setView: function(e, t, n) {
       t = this._limitZoom(t);
       var r = this._zoom !== t;
       if (this._loaded && !n && this._layers) {
+        this._panAnim && this._panAnim.stop();
         var i = r ? this._zoomToIfClose && this._zoomToIfClose(e, t) : this._panByIfClose(e);
         if (i) return clearTimeout(this._sizeTimer), this
       }
       return this._resetView(e, t), this
     },
     panBy: function(e, t) {
-      return e = n.point(e), !e.x && !e.y ? this : (this._panTransition || (this._panTransition = new n.Transition(this._mapPane), this._panTransition.on({
+      e = n.point(e);
+      if (!e.x && !e.y) return this;
+      this._panAnim || (this._panAnim = new n.PosAnimation, this._panAnim.on({
         step: this._onPanTransitionStep,
         end: this._onPanTransitionEnd
-      }, this)), n.Util.setOptions(this._panTransition, n.Util.extend({
-        duration: .25
-      }, t)), this.fire("movestart"), n.DomUtil.addClass(this._mapPane, "leaflet-pan-anim"), this._panTransition.run({
-        position: n.DomUtil.getPosition(this._mapPane).subtract(e)
-      }), this)
+      }, this)), this.fire("movestart"), n.DomUtil.addClass(this._mapPane, "leaflet-pan-anim");
+      var r = n.DomUtil.getPosition(this._mapPane).subtract(e);
+      return this._panAnim.run(this._mapPane, r, t || .25), this
     },
     _onPanTransitionStep: function() {
       this.fire("move")
@@ -3215,16 +3254,47 @@
         r = this.getSize();
       return Math.abs(e.x) <= r.x * n && Math.abs(e.y) <= r.y * n
     }
+  }), n.PosAnimation = n.DomUtil.TRANSITION ? n.PosAnimation : n.PosAnimation.extend({
+    run: function(e, t, r, i) {
+      this.stop(), this._el = e, this._inProgress = !0, this._duration = r || .25, this._ease = this._easings[i || "ease-out"], this._startPos = n.DomUtil.getPosition(e), this._offset = t.subtract(this._startPos), this._startTime = +(new Date), this.fire("start"), this._animate()
+    },
+    stop: function() {
+      if (!this._inProgress) return;
+      this._step(), this._complete()
+    },
+    _animate: function() {
+      this._animId = n.Util.requestAnimFrame(this._animate, this), this._step()
+    },
+    _step: function() {
+      var e = +(new Date) - this._startTime,
+        t = this._duration * 1e3;
+      e < t ? this._runFrame(this._ease(e / t)) : (this._runFrame(1), this._complete())
+    },
+    _runFrame: function(e) {
+      var t = this._startPos.add(this._offset.multiplyBy(e));
+      n.DomUtil.setPosition(this._el, t), this.fire("step")
+    },
+    _complete: function() {
+      n.Util.cancelAnimFrame(this._animId), this._inProgress = !1, this.fire("end")
+    },
+    _easings: {
+      "ease-out": function(e) {
+        return e * (2 - e)
+      },
+      linear: function(e) {
+        return e
+      }
+    }
   }), n.Map.mergeOptions({
     zoomAnimation: n.DomUtil.TRANSITION && !n.Browser.android23 && !n.Browser.mobileOpera
   }), n.DomUtil.TRANSITION && n.Map.addInitHook(function() {
-    n.DomEvent.on(this._mapPane, n.Transition.END, this._catchTransitionEnd, this)
+    n.DomEvent.on(this._mapPane, n.DomUtil.TRANSITION_END, this._catchTransitionEnd, this)
   }), n.Map.include(n.DomUtil.TRANSITION ? {
     _zoomToIfClose: function(e, t) {
       if (this._animatingZoom) return !0;
       if (!this.options.zoomAnimation) return !1;
       var r = this.getZoomScale(t),
-        i = this._getCenterOffset(e).divideBy(1 - 1 / r);
+        i = this._getCenterOffset(e)._divideBy(1 - 1 / r);
       if (!this._offsetIsWithinView(i, 1)) return !1;
       n.DomUtil.addClass(this._mapPane, "leaflet-zoom-anim"), this.fire("movestart").fire("zoomstart"), this.fire("zoomanim", {
         center: e,
@@ -3236,16 +3306,14 @@
     _catchTransitionEnd: function(e) {
       this._animatingZoom && this._onZoomTransitionEnd()
     },
-    _runAnimation: function(t, r, i, s, o) {
-      this._animateToCenter = t, this._animateToZoom = r, this._animatingZoom = !0;
-      var u = n.DomUtil.TRANSFORM,
-        a = this._tileBg;
-      clearTimeout(this._clearTileBgTimer);
-      if (n.Browser.gecko || e.opera) a.style[u] += " translate(0,0)";
-      n.Util.falseFn(a.offsetWidth);
-      var f = n.DomUtil.getScaleString(i, s),
-        l = a.style[u];
-      a.style[u] = o ? l + " " + f : f + " " + l
+    _runAnimation: function(e, t, r, i, s) {
+      this._animateToCenter = e, this._animateToZoom = t, this._animatingZoom = !0, n.Draggable && (n.Draggable._disabled = !0);
+      var o = n.DomUtil.TRANSFORM,
+        u = this._tileBg;
+      clearTimeout(this._clearTileBgTimer), n.Util.falseFn(u.offsetWidth);
+      var a = n.DomUtil.getScaleString(r, i),
+        f = u.style[o];
+      u.style[o] = s ? f + " " + a : a + " " + f
     },
     _prepareTileBg: function() {
       var e = this._tilePane,
@@ -3270,7 +3338,7 @@
       for (r = 0, i = t.length; r < i; r++) s = t[r], s.complete || (s.onload = n.Util.falseFn, s.onerror = n.Util.falseFn, s.src = n.Util.emptyImageUrl, s.parentNode.removeChild(s))
     },
     _onZoomTransitionEnd: function() {
-      this._restoreTileFront(), n.Util.falseFn(this._tileBg.offsetWidth), this._resetView(this._animateToCenter, this._animateToZoom, !0, !0), n.DomUtil.removeClass(this._mapPane, "leaflet-zoom-anim"), this._animatingZoom = !1
+      this._restoreTileFront(), n.Util.falseFn(this._tileBg.offsetWidth), this._resetView(this._animateToCenter, this._animateToZoom, !0, !0), n.DomUtil.removeClass(this._mapPane, "leaflet-zoom-anim"), this._animatingZoom = !1, n.Draggable && (n.Draggable._disabled = !1)
     },
     _restoreTileFront: function() {
       this._tilePane.innerHTML = "", this._tilePane.style.visibility = "", this._tilePane.style.zIndex = 2, this._tileBg.style.zIndex = 1
