@@ -73,6 +73,8 @@
           featureOver:  function(e, latlng, pos, data) { 
             document.body.style.cursor = "pointer";
 
+            console.log(data.cartodb_id);
+
             // Show the hover polygon if it is a different feature
             map.removeLayer(geojsonLayer);
 
@@ -80,7 +82,7 @@
               type: "Feature",
               geometry: {
                 type: "Polygon",
-                coordinates: coordinates[data.cartodb_id]
+                coordinates: [coordinates[data.cartodb_id]]
               }
             };
 
@@ -187,40 +189,28 @@
 
         refresh();
 
-        /*
         userName      = "wsjgraphics";
         tableName     = "cty0921md";
         incoming_race = 'gov';
 
-        var url = "http://" + userName + ".cartodb.com/api/v2/sql?format=geojson&q=" + escape("SELECT cartodb_id, ST_SIMPLIFY(cty0921md.the_geom, 0.1) as the_geom FROM cty0921md");
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?dp=3&format=geojson&q=" + escape("SELECT cartodb_id, ST_SIMPLIFY(cty0921md.the_geom, 0.1) as the_geom FROM cty0921md");
 
         $.ajax({ url: url, dataType: "jsonp", success: function(data) {
 
-        //console.log(data);
+          $.each(data, function(a, b) {
+            $.each(b, function(x, y) {
+              if (y.properties && y.properties.cartodb_id) {
+                var cartodb_id = y.properties.cartodb_id
+                coordinates[cartodb_id] = y.geometry.coordinates[0][0];
+              }
 
-        $.each(data, function(a, b) {
-        // console.log(b);
-        $.each(b, function(x, y) {
-        // console.log(y);
+            });
+          });
 
-        if (y.properties && y.properties.cartodb_id) {
-        var cartodb_id = y.properties.cartodb_id
-        //console.log(cartodb_id);
-        coordinates[cartodb_id] = y.geometry.coordinates[0];
-        }
-
-        });
-        });
-
-        var a = JSON.stringify(coordinates);
-        //console.log(a);
-
-
-        $.ajax({ type: "POST", url: "http://localhost:3001", data: a }); 
+          $.ajax({ type: "POST", url: "http://localhost:3001", data: JSON.stringify(coordinates) }); 
 
         }});
 
-        */
 
 
       }
