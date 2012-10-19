@@ -13,6 +13,9 @@ body, html {
 a { color: #333; }
 a:hover { color: #000; }
 
+
+.leaflet-container .leaflet-control-attribution { display: none; }
+
 .controls {
   display:none;
 
