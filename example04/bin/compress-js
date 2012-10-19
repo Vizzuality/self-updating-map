@@ -1,0 +1,3 @@
+java -jar bin/compiler.jar --js \
+       js/data.js \
+       --js_output_file js/data.min.js 

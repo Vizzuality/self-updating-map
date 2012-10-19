@@ -1,0 +1,239 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Self updating map</title>
+
+    <link href="css/style.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.css" />
+    <!--[if IE]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.ie.css" /><![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+
+    <script src="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.js"></script>
+    <script type="text/javascript" src="js/vendor/wax.leaf.min.js"></script>
+    <script type="text/javascript" src="js/vendor/cartodb-leaflet-min.js"></script>
+    <script type="text/javascript" src="js/vendor/cartodb-popup-min.js"></script>
+    <script type="text/javascript">
+
+      window.countries = countries;
+
+      var 
+      popup           = null,
+      timer           = null,
+      countries       = null,
+      map             = null,
+      lastUpdate      = null,
+      userName        = 'viz2',
+      tableName       = 'us_elections_2008',
+      refreshInterval = 3000; 
+
+      function showMessage(message) {
+
+        $(".message").html(message);
+
+        $(".message").animate({ opacity: 1, top: 0 }, { duration: 250, complete: function() {
+
+          setTimeout(function() {
+            $(".message").animate({ opacity: 0, top: "-40px" }, 250);
+          }, 3000);
+
+        }});
+      }
+
+      function createLayer(updatedAt) {
+
+        return new L.CartoDBLayer({
+          map: map,
+          user_name: userName,
+          table_name: tableName,
+          extra_params: {
+            update: updatedAt
+          },
+          cdn_url: "http://d2c5ry9dy1ewvi.cloudfront.net",
+          interactivity: "cartodb_id,obama_win,percent_de,percent_re",
+          featureOver:  function(e, latlng, pos, data) { document.body.style.cursor = "pointer"; },
+          featureOut:   function() { document.body.style.cursor = "default"; },
+          featureClick: function(e, latlng, pos, data) {
+
+            if (typeof( window.event ) != "undefined" ) {
+              // IE
+              e.cancelBubble=true;
+            } else {
+              // Rest
+              e.preventDefault();
+              e.stopPropagation();
+            }
+
+            if (data.obama_win != true) data.obama_win = "false";
+
+            // Set popup content
+            popup.setContent(data);
+
+            // Set latlng
+            popup.setLatLng(latlng);
+
+            // Show it!
+            map.openPopup(popup);
+
+          }
+        });
+
+      }
+
+      var refresh = function() {
+
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
+
+        $.get(url, function(data) {
+
+          var updatedAt     = data.rows[0].updated_at;
+          var updatedAtDate = new Date(Date.parse(updatedAt));
+
+          if (updatedAtDate > lastUpdate) { // Update the map
+
+            if (!countries) { // create layer
+
+              countries = createLayer(updatedAt);
+              map.addLayer(countries, false);
+
+            } else { // update layer
+              countries.setOptions({ extra_params: { update: updatedAt } });
+
+              popup._close();
+
+              showMessage("Map updated");
+            }
+
+            lastUpdate = updatedAtDate;
+
+          }
+
+        });
+
+        if (!timer) {
+          timer = setInterval(refresh, refreshInterval);
+        }
+
+      }
+
+      function initialize() {
+
+        var incoming_race = 'gov';
+
+        map = new L.Map('map').setView(new L.LatLng(30.849034, -28.371094), 4);
+
+        var 
+        mapboxUrl = 'http://{s}.tiles.mapbox.com/v3/cartodb.map-1nh578vv/{z}/{x}/{y}.png',
+        mapbox = new L.TileLayer(mapboxUrl, {maxZoom: 18, attribution: "OpenStreetMaps"});
+        
+        map.addLayer(mapbox,true);
+
+        userName  = "wsjgraphics";
+        tableName = "cty0921md";
+
+      // query: "SELECT cty0921md.the_geom_webmercator, geomjson as geometry, cty0921md.cartodb_id, states_results." + incoming_race + "_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
+
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?format=geojson&q=" + escape("SELECT states_results." + incoming_race + "_result as status, ST_SIMPLIFY(cty0921md.the_geom, 0.1) as the_geom, st_usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps");
+        //url = "http://localhost:3001/js/cartodb-query.geojson";
+
+        $.ajax({ url: url, jsonpCallback: "geocallback", dataType: "jsonp", success: function(data) {
+
+          var mediumBlue = "red";
+          var color = mediumBlue;
+
+          var normalStyle = {
+            color: '#fff', 
+            weight: 1,
+            opacity: 1,
+            fillColor: mediumBlue 
+          };
+
+          var highlightStyle = {
+            color: '#fff', 
+            weight: 1,
+            opacity: 1,
+            fillColor: 'yellow'
+          };
+
+          L.geoJson(data, {
+            style: function (feature) {
+
+              if (feature.properties.status == "DD") color = mediumBlue;
+              else color = "gray";
+
+              normalStyle.fillColor = color;
+
+              return {
+                weight: 1,
+                opacity:1,
+                color: "#fff",
+                fillColor: color
+              };
+
+            },
+            onEachFeature: function (feature, layer) {
+              layer.bindPopup(feature.properties.st_usps);
+
+              layer.on("mouseout", function(data) {
+
+              if (feature.properties.status == "DD") color = mediumBlue;
+              else color = "gray";
+
+              normalStyle.fillColor = color;
+                layer.setStyle(normalStyle);
+              });
+
+              layer.on("mouseover", function(a, b, c) {
+                console.log('hover', a, b, c);
+                layer.setStyle(highlightStyle);
+              });
+
+            }
+          }).addTo(map);
+
+      }});
+
+
+        // var 
+        // mapboxUrl = 'http://{s}.tiles.mapbox.com/v3/cartodb.map-1nh578vv/{z}/{x}/{y}.png',
+        // mapbox = new L.TileLayer(mapboxUrl, {maxZoom: 18, attribution: "OpenStreetMaps"});
+        // 
+        // map.addLayer(mapbox,true);
+
+        $(".interval").val(refreshInterval);
+
+        $(".update-interval").on("click", function() {
+
+          if (refreshInterval != $(".interval").val()) {
+            refreshInterval = $(".interval").val();
+            showMessage("Refresh interval changed to <strong>" + $(".interval").val() + " milliseconds</strong>");
+
+            clearInterval(timer);
+            timer = null;
+            refresh();
+          }
+
+        });
+
+        // refresh();
+
+      }
+    </script>
+
+    <style type="text/css">
+      .leaflet-container {
+        background: #fff;
+      }
+    </style>
+
+  </head>
+
+  <body onload="initialize();">
+    <div class="message">Map updated</div>
+    <div class="controls">
+      <input type="text" class="interval" />ms&nbsp;&nbsp; <a href="#" class="update-interval">update refresh time</a>
+    </div>
+    <div id="map"></div>
+  </body>
+</html>

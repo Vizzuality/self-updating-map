@@ -1,0 +1,244 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Self updating map v4</title>
+
+    <link href="css/style.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.css" />
+    <!--[if IE]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.ie.css" /><![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+
+    <script type="text/javascript" src="js/data.min.js"></script>
+
+    <script src="http://cdn.leafletjs.com/leaflet-0.4.4/leaflet.js"></script>
+    <script type="text/javascript" src="js/vendor/wax.leaf.min.js"></script>
+    <script type="text/javascript" src="js/vendor/cartodb-leaflet-min.js"></script>
+    <script type="text/javascript" src="js/vendor/cartodb-popup-min.js"></script>
+    <script type="text/javascript">
+
+      window.countries = countries;
+
+      var 
+      geojsonLayer    = new L.GeoJSON(null),
+      popup           = null,
+      timer           = null,
+      countries       = null,
+      map             = null,
+      lastUpdate      = null,
+      userName        = 'wsjgraphics',
+      tableName       = 'cty0921md',
+      refreshInterval = 3000; 
+
+      function showMessage(message) {
+
+        $(".message").html(message);
+
+        $(".message").animate({ opacity: 1, top: 0 }, { duration: 250, complete: function() {
+
+          setTimeout(function() {
+            $(".message").animate({ opacity: 0, top: "-40px" }, 250);
+          }, 3000);
+
+        }});
+      }
+
+      function parseDate(input) {
+        var parts = input.match(/(\d+)/g);
+        // new Date(year, month [, date [, hours[, minutes[, seconds[, ms]]]]])
+        return new Date(parts[0], parts[1]-1, parts[2]); // months are 0-based
+      }
+
+      function createLayer(updatedAt) {
+
+        var tileStyleData = "#cty0921md{line-width:1;line-opacity:1; polygon-fill:#f1f1f1}";
+
+        var style = {
+          "color": "#ff7800",
+          "weight": 5,
+          "opacity": 0.65
+        };
+
+        return new L.CartoDBLayer({
+          map: map,
+          user_name: userName,
+          table_name: tableName,
+          tile_style: tileStyleData,
+          extra_params: {
+            update: updatedAt
+          },
+          // cdn_url: "http://d2c5ry9dy1ewvi.cloudfront.net",
+          interactivity: "cartodb_id",
+          featureOver:  function(e, latlng, pos, data) { 
+            document.body.style.cursor = "pointer";
+
+            // Show the hover polygon if it is a different feature
+            map.removeLayer(geojsonLayer);
+
+            var polygon = {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: coordinates[data.cartodb_id]
+              }
+            };
+
+            geojsonLayer = new L.GeoJSON(polygon, { style: style });
+            map.addLayer(geojsonLayer);
+
+            geojsonLayer.cartodb_id = data.cartodb_id;
+
+          },
+
+          featureOut:   function() { 
+            document.body.style.cursor = "default";
+            geojsonLayer.cartodb_id = null;
+            geojsonLayer.off("featureparse");
+            map.removeLayer(geojsonLayer)
+          },
+          featureClick: function(e, latlng, pos, data) {
+
+
+            if (typeof( window.event ) != "undefined" ) {
+              // IE
+              e.cancelBubble=true;
+            } else {
+              // Rest
+              e.preventDefault();
+              e.stopPropagation();
+            }
+
+            if (data.obama_win != true) data.obama_win = "false";
+
+            // Set popup content
+            popup.setContent(data);
+
+            // Set latlng
+            popup.setLatLng(latlng);
+
+            // Show it!
+            map.openPopup(popup);
+
+          }
+        });
+
+      }
+
+      var refresh = function() {
+
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
+
+        $.ajax({ url: url, dataType: "jsonp", success: function(data) {
+
+          var updatedAt     = data.rows[0].updated_at;
+          var updatedAtDate = new Date(parseDate(updatedAt));
+
+
+          if (updatedAtDate > lastUpdate) { // Update the map
+            console.log('refresh');
+
+            if (!countries) { // create layer
+
+              countries = createLayer(updatedAt);
+              map.addLayer(countries, false);
+
+            } else { // update layer
+              countries.setOptions({ extra_params: { update: updatedAt } });
+
+              popup._close();
+
+              showMessage("Map updated");
+            }
+
+            lastUpdate = updatedAtDate;
+
+          }
+
+      }});
+
+        if (!timer) {
+          timer = setInterval(refresh, refreshInterval);
+        }
+
+      }
+
+      function initialize() {
+
+        popup = new L.CartoDBPopup();
+
+        map = new L.Map('map').setView(new L.LatLng(30.849034, -28.371094), 4);
+
+
+        $(".interval").val(refreshInterval);
+
+        $(".update-interval").on("click", function() {
+
+          if (refreshInterval != $(".interval").val()) {
+            refreshInterval = $(".interval").val();
+            showMessage("Refresh interval changed to <strong>" + $(".interval").val() + " milliseconds</strong>");
+
+            clearInterval(timer);
+            timer = null;
+            refresh();
+          }
+
+        });
+
+        refresh();
+
+        /*
+        userName      = "wsjgraphics";
+        tableName     = "cty0921md";
+        incoming_race = 'gov';
+
+        var url = "http://" + userName + ".cartodb.com/api/v2/sql?format=geojson&q=" + escape("SELECT cartodb_id, ST_SIMPLIFY(cty0921md.the_geom, 0.1) as the_geom FROM cty0921md");
+
+        $.ajax({ url: url, dataType: "jsonp", success: function(data) {
+
+        //console.log(data);
+
+        $.each(data, function(a, b) {
+        // console.log(b);
+        $.each(b, function(x, y) {
+        // console.log(y);
+
+        if (y.properties && y.properties.cartodb_id) {
+        var cartodb_id = y.properties.cartodb_id
+        //console.log(cartodb_id);
+        coordinates[cartodb_id] = y.geometry.coordinates[0];
+        }
+
+        });
+        });
+
+        var a = JSON.stringify(coordinates);
+        //console.log(a);
+
+
+        $.ajax({ type: "POST", url: "http://localhost:3001", data: a }); 
+
+        }});
+
+        */
+
+
+      }
+    </script>
+
+    <style type="text/css">
+      .leaflet-container {
+        background: #fff;
+      }
+    </style>
+
+  </head>
+
+  <body onload="initialize();">
+    <div class="message">Map updated</div>
+    <div class="controls">
+      <input type="text" class="interval" />ms&nbsp;&nbsp; <a href="#" class="update-interval">update refresh time</a>
+    </div>
+    <div id="map"></div>
+  </body>
+</html>
