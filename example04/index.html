@@ -80,7 +80,7 @@
               type: "Feature",
               geometry: {
                 type: "Polygon",
-                coordinates: [coordinates[data.cartodb_id]]
+                coordinates: [c[data.cartodb_id]]
               }
             };
 
@@ -154,7 +154,7 @@
 
           }
 
-      }});
+        }});
 
         if (!timer) {
           timer = setInterval(refresh, refreshInterval);
@@ -185,37 +185,6 @@
         });
 
         refresh();
-        /*
-
-        userName      = "wsjgraphics";
-        tableName     = "cty0921md";
-        incoming_race = 'gov';
-
-        var url = "http://" + userName + ".cartodb.com/api/v2/sql?dp=3&format=geojson&q=" + escape("SELECT cartodb_id, ST_SIMPLIFY(cty0921md.the_geom, 0.1) as the_geom FROM cty0921md");
-
-        var i = 0;
-        $.ajax({ url: url, dataType: "jsonp", success: function(data) {
-
-          $.each(data, function(a, b) {
-            $.each(b, function(x, y) {
-              if (y.properties && y.properties.cartodb_id) {
-                var cartodb_id = y.properties.cartodb_id
-                var c = y.geometry.coordinates[0][0];
-                c.pop();
-                
-                coordinates[cartodb_id] = c; 
-                i++;
-              }
-
-            });
-          });
-
-          $.ajax({ type: "POST", url: "http://localhost:3001", data: JSON.stringify(coordinates) }); 
-
-        }});
-        */
-
-
 
       }
     </script>
