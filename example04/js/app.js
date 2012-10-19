@@ -126,14 +126,16 @@ window.refresh = false;
 
   }
 
-  function createLayer(updatedAt) {
+  function createLayer(updatedAt, opacity) {
 
     var incoming_race = 'gov';
+
     return new L.CartoDBLayer({
       map: map,
       user_name: userName,
       table_name: tableName,
       tile_style: tileStyleData,
+      opacity: opacity,
       query: "SELECT st_name, st_usps, cty0921md.the_geom_webmercator, cty0921md.cartodb_id, states_results." + incoming_race + "_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
       extra_params: {
         cache_buster: updatedAt
@@ -192,67 +194,67 @@ window.refresh = false;
       var updatedAt     = data.rows[0].updated_at;
       var updatedAtDate = new Date(Date.parse(updatedAt));
 
-      // console.log(updatedAtDate, "-", lastUpdate, "-", new Date(parseDate(updatedAt)));
-
-      if (window.refresh || updatedAtDate > lastUpdate) { // Update the map
+      if (window.refresh == true || (updatedAtDate > lastUpdate)) { // Update the map
 
         if (!layer) { // create layer
-          console.log('Creating layer');
 
-          layer = createLayer(updatedAt);
+          layer = createLayer(updatedAt, 1);
 
-          map.addLayer(layer);
+          map.addLayer(layer, false);
 
           $(".last-update").stopwatch('toggle');
           $(".last-update").stopwatch('reset');
 
         } else { // update layer
 
-          window.refresh = false;
+          showMessage("New data coming…");
 
+          window.refresh = false;
           var deleted = false;
 
-          popup._close();
+          // popup._close();
 
-          layerNew = createLayer(updatedAt);
+          var layerNew = createLayer(updatedAt, 0);
+          map.addLayer(layerNew, false);
 
           layerNew.on("load", function() {
 
             showMessage("Map updated");
 
-            var opacity = 1;
+            var opacity = 0;
 
             (function animloop(){
 
               request = requestAnimFrame(animloop);
 
-              layer.setOpacity(opacity);
-              opacity -= .01;
+              layerNew.setOpacity(opacity);
+              opacity += .05;
 
-              if (!deleted && opacity < 0 ) {
+              if (!deleted && opacity >= 1 ) {
+
                 opacity = 0;
                 deleted = true;
 
                 $(".last-update").stopwatch('toggle');
                 $(".last-update").stopwatch('reset');
 
-
                 cancelRequestAnimFrame(request);
+
                 // Swapp the layers
                 map.removeLayer(layer);
 
                 delete layer;
                 layer = layerNew;
+
+                map.invalidateSize(false);
               }
 
             })();
-
 
             this.off("load", null, this); // unbind the load event
 
           });
 
-          map.addLayer(layerNew);
 
         }
 
