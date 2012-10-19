@@ -13,6 +13,17 @@ body, html {
 a { color: #333; }
 a:hover { color: #000; }
 
+.last-update {
+  position:absolute;
+  top: 40px;
+  right: 50px;
+
+  font-size: 14px;
+  font-family: "Droid Sans", sans-serif;
+
+  z-index: 1000;
+
+}
 
 .leaflet-container .leaflet-control-attribution { display: none; }
 
