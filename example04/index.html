@@ -147,12 +147,12 @@
           user_name: userName,
           table_name: tableName,
           tile_style: tileStyleData,
-          query: "SELECT st_name, cty0921md.the_geom_webmercator, cty0921md.cartodb_id, states_results." + incoming_race + "_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
+          query: "SELECT st_name, st_usps, cty0921md.the_geom_webmercator, cty0921md.cartodb_id, states_results." + incoming_race + "_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
           extra_params: {
             update: updatedAt
           },
           // cdn_url: "http://d2c5ry9dy1ewvi.cloudfront.net",
-          interactivity: "cartodb_id",
+          interactivity: "cartodb_id, status, st_usps",
           featureOver:  function(e, latlng, pos, data) { 
             document.body.style.cursor = "pointer";
 
@@ -182,8 +182,6 @@
               e.stopPropagation();
             }
 
-            if (data.obama_win != true) data.obama_win = "false";
-
             // Set popup content
             popup.setContent(data);
 
@@ -201,6 +199,7 @@
       var refresh = function() {
 
         var url = "http://com.cartodb.refreshtokens.s3.amazonaws.com/wsjgraphics/lastupdate.jsonp";
+
         url = "http://assets.javierarce.com/lastupdate.jsonp";
 
         $.ajax({ url: url, jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
