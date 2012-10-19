@@ -40,7 +40,7 @@ callback = function(response) {
       });
     });
 
-    console.log("c="+JSON.stringify(outputObject).replace(/\"/g,"")+";");
+    console.log("callback({c:"+JSON.stringify(outputObject).replace(/\"/g,"")+"});");
 
   });
 }
