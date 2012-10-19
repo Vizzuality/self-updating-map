@@ -18,16 +18,40 @@
     <script type="text/javascript" src="js/vendor/cartodb-popup-min.js"></script>
     <script type="text/javascript">
 
-      window.countries = countries;
+      var timeID;
+
+      window.cancelRequestAnimFrame = ( function() {
+        return window.cancelAnimationFrame          ||
+        window.webkitCancelRequestAnimationFrame    ||
+        window.mozCancelRequestAnimationFrame       ||
+        window.oCancelRequestAnimationFrame     ||
+        window.msCancelRequestAnimationFrame        ||
+
+        function( callback ){
+          window.clearTimeout(timeID);
+        };
+      } )();
+
+      window.requestAnimFrame = (function(){
+        return  window.requestAnimationFrame       || 
+        window.webkitRequestAnimationFrame || 
+        window.mozRequestAnimationFrame    || 
+        window.oRequestAnimationFrame      || 
+        window.msRequestAnimationFrame     || 
+        function( callback ){
+          timeID = window.setTimeout(callback, 1000 / 60);
+        };
+      })();
 
       var 
+      request         = null,
       geojsonLayer    = new L.GeoJSON(null),
       popup           = null,
       timer           = null,
-      countries       = null,
+      layer           = null,
       map             = null,
       lastUpdate      = null,
-      userName        = 'wsjgraphics',
+      userName        = 'wsjgraphics2',
       tableName       = 'cty0921md',
       refreshInterval = 3000; 
 
@@ -52,7 +76,7 @@
 
       function createLayer(updatedAt) {
 
-        var tileStyleData = "#cty0921md{line-width:1;line-opacity:1; polygon-fill:#f1f1f1}";
+        var tileStyleData = "#cty0921md{line-width:1;line-opacity:1; polygon-fill:#f1f1f1; [st_name='California']{polygon-fill:red;}}";
 
         var style = {
           "color": "#ff7800",
@@ -60,11 +84,13 @@
           "opacity": 0.65
         };
 
+        var incoming_race = 'gov';
         return new L.CartoDBLayer({
           map: map,
           user_name: userName,
           table_name: tableName,
           tile_style: tileStyleData,
+          query: "SELECT st_name, cty0921md.the_geom_webmercator, cty0921md.cartodb_id, states_results." + incoming_race + "_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
           extra_params: {
             update: updatedAt
           },
@@ -128,26 +154,63 @@
       var refresh = function() {
 
         var url = "http://com.cartodb.refreshtokens.s3.amazonaws.com/wsjgraphics/lastupdate.jsonp";
+        url = "http://assets.javierarce.com/lastupdate.jsonp";
 
         $.ajax({ url: url, jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
 
-      var updatedAt     = data.time;
+          var updatedAt     = data.time;
           var updatedAtDate = new Date(parseDate(updatedAt));
-
 
           if (updatedAtDate > lastUpdate) { // Update the map
 
-            if (!countries) { // create layer
+            if (!layer) { // create layer
+              console.log('creating layer');
 
-              countries = createLayer(updatedAt);
-              map.addLayer(countries, false);
+              layer = createLayer(updatedAt);
+
+              map.addLayer(layer);
 
             } else { // update layer
-              countries.setOptions({ extra_params: { update: updatedAt } });
+              var deleted = false;
 
               popup._close();
 
-              showMessage("Map updated");
+              layerNew = createLayer(updatedAt);
+
+              layerNew.on("load", function() {
+
+                showMessage("Map updated");
+
+                var opacity = 1;
+
+                (function animloop(){
+
+                  request = requestAnimFrame(animloop);
+
+                  layer.setOpacity(opacity);
+                  opacity -= .01;
+
+                  if (!deleted && opacity < 0 ) {
+                    opacity = 0;
+                    deleted = true;
+
+                    cancelRequestAnimFrame(request);        
+                    // Swapp the layers
+                    map.removeLayer(layer);
+
+                    delete layer;
+                    layer = layerNew;
+                  }
+
+                })();
+
+
+                this.off("load", null, this); // unbind the load event
+
+              });
+
+              map.addLayer(layerNew);
+
             }
 
             lastUpdate = updatedAtDate;
