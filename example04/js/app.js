@@ -229,6 +229,10 @@ window.refresh = false;
 
     $.get(url, function(data) {
 
+      if (!data.rows) {
+        var data = JSON.parse(data);
+      }
+
       var updatedAt     = data.rows[0].updated_at;
       var updatedAtDate = new Date(Date.parse(updatedAt));
 
