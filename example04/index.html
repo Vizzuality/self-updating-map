@@ -37,6 +37,7 @@
     var jsontype = ($.browser.msie) ? "jsonp" : "json";
 
     var tileStyleData = "#st0921md{line-width:1;line-opacity:1;}[status='none']{line-color:" + '#cccccc' + ";polygon-fill:" + '#eeeeee' + "}[status='RR']{line-color:" + mediumGray + ";polygon-fill:" + fullRed + "}[status='R']{line-color:" + mediumGray + ";polygon-fill:" + mediumRed + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}[status='D']{line-color:" + mediumGray + ";polygon-fill:" + mediumBlue + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}[status='DD']{line-color:" + mediumGray + ";polygon-fill:" + fullBlue + "}[status='I']{line-color:" + '#999999' + ";polygon-fill:" + indepClr + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}[status='II']{line-color:" + '#999999' + ";polygon-fill:" + indepClr + "}[status='U']{line-color:" + '#666666' + ";polygon-fill:" + mediumGray + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}";
+
       var timeID;
 
       window.cancelRequestAnimFrame = ( function() {
@@ -65,6 +66,7 @@
       var 
       request         = null,
       geojsonLayer    = new L.GeoJSON(null),
+      clickLayer      = new L.GeoJSON(null),
       popup           = null,
       timer           = null,
       layer           = null,
@@ -73,6 +75,10 @@
       userName        = 'wsjgraphics',
       tableName       = 'cty0921md',
       refreshInterval = 3000; 
+
+      var // polygon styles
+      polygonStyle      = { color: "#ff7800", weight: 5, opacity: 0.65, clickable:false },
+      clickPolygonStyle = { color: "red", weight: 5, opacity: 0.65, clickable:false };
 
       function showMessage(message) {
 
@@ -93,15 +99,47 @@
         return new Date(parts[0], parts[1]-1, parts[2]); // months are 0-based
       }
 
-      function createLayer(updatedAt) {
+      function addClickPolygon(data) {
 
+        map.removeLayer(clickLayer);
 
-        var style = {
-          "color": "#ff7800",
-          "weight": 5,
-          "opacity": 0.65,
-          clickable:false
+        var polygon = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [c[data.cartodb_id]]
+          }
         };
+
+        clickLayer = new L.GeoJSON(polygon, { style: clickPolygonStyle });
+        map.addLayer(clickLayer);
+
+        clickLayer.cartodb_id = data.cartodb_id;
+
+      }
+
+      function highlightPolygon(data) {
+
+        // Show the hover polygon if it is a different feature
+        map.removeLayer(geojsonLayer);
+
+        var polygon = {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [c[data.cartodb_id]]
+          }
+        };
+
+        geojsonLayer = new L.GeoJSON(polygon, { style: polygonStyle });
+        map.addLayer(geojsonLayer);
+
+        geojsonLayer.cartodb_id = data.cartodb_id;
+
+
+      }
+
+      function createLayer(updatedAt) {
 
         var incoming_race = 'gov';
         return new L.CartoDBLayer({
@@ -118,32 +156,22 @@
           featureOver:  function(e, latlng, pos, data) { 
             document.body.style.cursor = "pointer";
 
-            // Show the hover polygon if it is a different feature
-            map.removeLayer(geojsonLayer);
-
-            var polygon = {
-              type: "Feature",
-              geometry: {
-                type: "Polygon",
-                coordinates: [c[data.cartodb_id]]
-              }
-            };
-
-            geojsonLayer = new L.GeoJSON(polygon, { style: style });
-            map.addLayer(geojsonLayer);
-
-            geojsonLayer.cartodb_id = data.cartodb_id;
+            highlightPolygon(data);
 
           },
 
           featureOut:   function() { 
+
             document.body.style.cursor = "default";
             geojsonLayer.cartodb_id = null;
             geojsonLayer.off("featureparse");
             map.removeLayer(geojsonLayer)
+
           },
+
           featureClick: function(e, latlng, pos, data) {
 
+            addClickPolygon(data);
 
             if (typeof( window.event ) != "undefined" ) {
               // IE
@@ -248,6 +276,7 @@
 
         popup = new L.CartoDBPopup();
 
+
         var northEast = new L.LatLng(49, 9);
         var southWest = new L.LatLng(6.5, -68);
 
@@ -265,6 +294,9 @@
 
         map = new L.Map('map', options);
 
+        map.on("popupclose", function() {
+          map.removeLayer(clickLayer);
+        });
 
         $(".interval").val(refreshInterval);
 
