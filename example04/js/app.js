@@ -76,12 +76,6 @@ window.refresh = false;
     }});
   }
 
-  function parseDate(input) {
-    var parts = input.match(/(\d+)/g);
-    // new Date(year, month [, date [, hours[, minutes[, seconds[, ms]]]]])
-    return new Date(parts[0], parts[1]-1, parts[2]); // months are 0-based
-  }
-
   function addClickPolygon(data) {
 
     if (!c) return;
@@ -227,14 +221,16 @@ window.refresh = false;
     var tableName       = 'states_results';
     var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
 
-    $.get(url, function(data) {
+    $.ajax({url: url, jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
 
       if (!data.rows) {
-        var data = JSON.parse(data);
+        data = JSON.parse(data);
       }
 
       var updatedAt     = data.rows[0].updated_at;
-      var updatedAtDate = new Date(Date.parse(updatedAt));
+      var updatedAtDate = moment(updatedAt);
+
+      //console.log(updatedAtDate, lastUpdate);
 
       if (window.refresh == true || (updatedAtDate > lastUpdate)) { // Update the map
 
@@ -271,7 +267,7 @@ window.refresh = false;
 
       }
 
-    });
+    }});
 
     if (!timer) {
       timer = setInterval(refresh, refreshInterval);
