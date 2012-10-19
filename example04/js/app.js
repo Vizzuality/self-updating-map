@@ -183,6 +183,44 @@ window.refresh = false;
 
   }
 
+  function onLayerLoaded(layerNew) {
+
+    layerNew.off("load", null, layerNew); // unbind the load event
+
+    showMessage("Map updated");
+    var deleted = false;
+
+    var opacity = 0;
+
+    (function animloop(){
+
+      request = requestAnimFrame(animloop);
+
+      layerNew.setOpacity(opacity);
+      opacity += .05;
+
+      if (!deleted && opacity >= 1 ) {
+
+        opacity = 0;
+        deleted = true;
+
+        $(".last-update").stopwatch('reset');
+
+        cancelRequestAnimFrame(request);
+
+        // Swapp the layers
+        map.removeLayer(layer);
+
+        delete layer;
+        layer = layerNew;
+
+        map.invalidateSize(false);
+      }
+
+    })();
+
+  }
+
   var refresh = function() {
 
     var userName        = 'viz2';
@@ -202,56 +240,23 @@ window.refresh = false;
 
           map.addLayer(layer, false);
 
-          $(".last-update").stopwatch('toggle');
-          $(".last-update").stopwatch('reset');
+          $(".last-update").stopwatch('start');
 
         } else { // update layer
 
           showMessage("New data coming…");
 
           window.refresh = false;
-          var deleted = false;
 
           // popup._close();
 
           var layerNew = createLayer(updatedAt, 0);
           map.addLayer(layerNew, false);
 
+
           layerNew.on("load", function() {
 
-            showMessage("Map updated");
-
-            var opacity = 0;
-
-            (function animloop(){
-
-              request = requestAnimFrame(animloop);
-
-              layerNew.setOpacity(opacity);
-              opacity += .05;
-
-              if (!deleted && opacity >= 1 ) {
-
-                opacity = 0;
-                deleted = true;
-
-                $(".last-update").stopwatch('toggle');
-                $(".last-update").stopwatch('reset');
-
-                cancelRequestAnimFrame(request);
-
-                // Swapp the layers
-                map.removeLayer(layer);
-
-                delete layer;
-                layer = layerNew;
-
-                map.invalidateSize(false);
-              }
-
-            })();
-
-            this.off("load", null, this); // unbind the load event
+            onLayerLoaded(this);
 
           });
 
@@ -280,7 +285,7 @@ window.refresh = false;
 
   function initialize() {
 
-    $('.last-update').stopwatch({format: 'Last update: <strong>{Minutes} and {seconds} ago</strong>'}).stopwatch('start');
+    $('.last-update').stopwatch({format: 'Last update: <strong>{Minutes} and {seconds} ago</strong>'});
 
     popup = new L.CartoDBPopup();
 
