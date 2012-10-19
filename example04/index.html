@@ -73,8 +73,6 @@
           featureOver:  function(e, latlng, pos, data) { 
             document.body.style.cursor = "pointer";
 
-            console.log(data.cartodb_id);
-
             // Show the hover polygon if it is a different feature
             map.removeLayer(geojsonLayer);
 
@@ -138,7 +136,6 @@
 
 
           if (updatedAtDate > lastUpdate) { // Update the map
-            console.log('refresh');
 
             if (!countries) { // create layer
 
