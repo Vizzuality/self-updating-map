@@ -17,7 +17,8 @@
     <script type="text/javascript">
 
       var c = null;
-      // colors
+
+      // Colors
       var darkerRed = '#850713';
       var fullRed = '#c72535';
       var fullRed_tint = '#f4d3d7';
@@ -154,7 +155,7 @@
             extra_params: {
               update: updatedAt
             },
-            // cdn_url: "http://d2c5ry9dy1ewvi.cloudfront.net",
+            cdn_url: "http://d2c5ry9dy1ewvi.cloudfront.net",
             interactivity: "cartodb_id, status, st_usps",
             featureOver:  function(e, latlng, pos, data) { 
               document.body.style.cursor = "pointer";
@@ -199,12 +200,16 @@
 
         var refresh = function() {
 
-          var url = "http://com.cartodb.refreshtokens.s3.amazonaws.com/wsjgraphics/lastupdate.jsonp";
+          var userName        = 'viz2';
+          var tableName       = 'states_results';
+          var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
 
-          $.ajax({ url: url, jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
+        $.get(url, function(data) {
 
-            var updatedAt     = data.time;
-            var updatedAtDate = new Date(parseDate(updatedAt));
+          var updatedAt     = data.rows[0].updated_at;
+          var updatedAtDate = new Date(Date.parse(updatedAt));
+
+          //console.log(updatedAtDate, "-", lastUpdate, "-", new Date(parseDate(updatedAt)));
 
             if (updatedAtDate > lastUpdate) { // Update the map
 
@@ -262,7 +267,7 @@
 
             }
 
-          }});
+          });
 
           if (!timer) {
             timer = setInterval(refresh, refreshInterval);
@@ -270,18 +275,19 @@
 
         }
 
+        function getCounties() {
+
+          $.ajax({ url: "http://com.cartodb.uselections.s3.amazonaws.com/hover_geoms/cty0921md_01.js", jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
+            c = data;
+          }});
+
+        }
+
         function initialize() {
 
           popup = new L.CartoDBPopup();
 
-          $.ajax({ url: "http://com.cartodb.uselections.s3.amazonaws.com/hover_geoms/cty0921md_01.js", jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
-            c = data;
-            console.log("Ok");
-
-
-          }});
-
-
+          getCounties();
 
           var northEast = new L.LatLng(49, 9);
           var southWest = new L.LatLng(6.5, -68);
