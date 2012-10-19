@@ -18,6 +18,27 @@
     <script type="text/javascript" src="js/vendor/cartodb-popup-min.js"></script>
     <script type="text/javascript">
 
+// colors
+var darkerRed = '#850713';
+var fullRed = '#c72535';
+var fullRed_tint = '#f4d3d7';
+var mediumRed = '#d77464';
+var mediumRed_tint = '#f7e3e0';
+var fullBlue = '#0073a2';
+var fullBlue_tint = '#cce3ec';
+var mediumBlue = '#5c94ba';
+var mediumBlue_tint = '#deeaf1';
+var mediumGray = '#cccccc';
+var lightGray = '#f7f7f7';
+var mediumGray_tint_tint = '#f4edf9';
+var darkerBlue = '#035170';
+var indepClr = '#FFEEC3';
+var indBG = '#F5C95B';
+var jsontype = ($.browser.msie) ? "jsonp" : "json";
+var firstLoad = true;
+var biggestMargin = 0;
+        
+var tileStyleData = "#st0921md{line-width:1;line-opacity:1;}[status='none']{line-color:" + '#cccccc' + ";polygon-fill:" + '#eeeeee' + "}[status='RR']{line-color:" + mediumGray + ";polygon-fill:" + fullRed + "}[status='R']{line-color:" + mediumGray + ";polygon-fill:" + mediumRed + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}[status='D']{line-color:" + mediumGray + ";polygon-fill:" + mediumBlue + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}[status='DD']{line-color:" + mediumGray + ";polygon-fill:" + fullBlue + "}[status='I']{line-color:" + '#999999' + ";polygon-fill:" + indepClr + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}[status='II']{line-color:" + '#999999' + ";polygon-fill:" + indepClr + "}[status='U']{line-color:" + '#666666' + ";polygon-fill:" + mediumGray + ";polygon-pattern-file:url('http://graphics.wsj.com/documents/images/hatch16mm.png')}";
       var timeID;
 
       window.cancelRequestAnimFrame = ( function() {
@@ -51,7 +72,7 @@
       layer           = null,
       map             = null,
       lastUpdate      = null,
-      userName        = 'wsjgraphics2',
+      userName        = 'wsjgraphics',
       tableName       = 'cty0921md',
       refreshInterval = 3000; 
 
@@ -76,7 +97,9 @@
 
       function createLayer(updatedAt) {
 
-        var tileStyleData = "#cty0921md{line-width:1;line-opacity:1; polygon-fill:#f1f1f1; [st_name='California']{polygon-fill:red;}}";
+
+        
+//        var tileStyleData = "#cty0921md{line-width:1;line-opacity:1; polygon-fill:#f1f1f1; [st_name='California']{polygon-fill:red;}}";
 
         var style = {
           "color": "#ff7800",
@@ -229,7 +252,23 @@
 
         popup = new L.CartoDBPopup();
 
-        map = new L.Map('map').setView(new L.LatLng(30.849034, -28.371094), 4);
+
+        var northEast = new L.LatLng(49, 9);
+        var southWest = new L.LatLng(6.5, -68);
+
+        var bounds = new L.LatLngBounds(southWest, northEast);
+
+        var options = {
+          // maxBounds: bounds,
+          center: new L.LatLng(30.849034, -28.371094),
+          zoom: 3,
+          maxZoom: 9,
+          minZoom: 4,
+          zoomAnimation: true,
+          fadeAnimation: true
+        };
+
+        map = new L.Map('map', options);
 
 
         $(".interval").val(refreshInterval);
