@@ -221,11 +221,12 @@ window.refresh = false;
     var tableName       = 'states_results';
     var url = "http://" + userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
 
-    $.ajax({url: url, jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
+    $.ajax({url: url, cache: true, jsonpCallback: "callback", dataType: "jsonp", success: function(data) {
 
       if (!data.rows) {
         data = JSON.parse(data);
       }
+
 
       var updatedAt     = data.rows[0].updated_at;
       var updatedAtDate = moment(updatedAt);
