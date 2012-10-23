@@ -220,8 +220,6 @@ function fadeOut(lyr) {
 
     opacity += .05;
 
-    console.log(opacity);
-
     if (!deleted && opacity >= 1 ) {
 
       opacity = 0;
