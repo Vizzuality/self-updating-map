@@ -5,27 +5,30 @@ CONFIG = {
   zoom:    3,
   maxZoom: 9,
   minZoom: 4,
-  userName: 'wsjgraphics02',
+  userName: 'viz2',
+  //userName: 'wsjgraphics02',
   tableName: 'cty0921md',
-  refreshInterval: 3000
+  refreshInterval: 3000,
+
+  style: "#st0921md { line-width:1; line-opacity:1; } \
+    [status='none'] { line-color: #ffffff; polygon-fill: #eeeeee;  } \
+    [status='RR']   { line-color: #ffffff; polygon-fill: #c72535;  } \
+    [status='R']    { line-color: #ffffff; polygon-fill: #c72535;  } \
+    [status='D']    { line-color: #ffffff; polygon-fill: #5c94ba;  } \
+    [status='DD']   { line-color: #ffffff; polygon-fill: #0073a2;  } \
+    [status='I']    { line-color: #999999; polygon-fill: #FFEEC3;  } \
+    [status='II']   { line-color: #999999; polygon-fill: #FFEEC3;  } \
+    [status='U']    { line-color: #666666; polygon-fill: #ffffff;  }",
+
+  polygonHoverStyle: { color: "#ff7800", weight: 5, opacity: 0.65, clickable:false },
+  polygonClickStyle: { color: "red", weight: 5, opacity: 0.65, clickable:false }
+
 
 };
 
-var hoverData = null;
-var timeID;
-
-// Styles
-var tileStyleData = "#st0921md { line-width:1; line-opacity:1; } \
-[status='none'] { line-color: #ffffff; polygon-fill: #eeeeee;  } \
-[status='RR']   { line-color: #ffffff; polygon-fill: #c72535;  } \
-[status='R']    { line-color: #ffffff; polygon-fill: #c72535;  } \
-[status='D']    { line-color: #ffffff; polygon-fill: #5c94ba;  } \
-[status='DD']   { line-color: #ffffff; polygon-fill: #0073a2;  } \
-[status='I']    { line-color: #999999; polygon-fill: #FFEEC3;  } \
-[status='II']   { line-color: #999999; polygon-fill: #FFEEC3;  } \
-[status='U']    { line-color: #666666; polygon-fill: #ffffff;  }";
-
 var
+hoverData       = null;
+timeID          = null,
 request         = null,
 geojsonLayer    = new L.GeoJSON(null),
 clickLayer      = new L.GeoJSON(null),
@@ -36,11 +39,7 @@ map             = null,
 lastUpdate      = null;
 
 
-var // polygon styles
-polygonStyle      = { color: "#ff7800", weight: 5, opacity: 0.65, clickable:false },
-clickPolygonStyle = { color: "red", weight: 5, opacity: 0.65, clickable:false };
-
-
+// Request animation frame
 window.cancelRequestAnimFrame = ( function() {
   return window.cancelAnimationFrame       ||
   window.webkitCancelRequestAnimationFrame ||
@@ -67,6 +66,20 @@ window.requestAnimFrame = (function(){
 
 })();
 
+
+// Stop watch methods
+function setupStopWatch() {
+  $('.last-update').stopwatch({format: 'Last update: <strong>{Minutes} and {seconds} ago</strong>'});
+}
+
+function startStopWatch() {
+  $(".last-update").stopwatch('start');
+}
+
+function resetStopWatch() {
+  $(".last-update").stopwatch('reset');
+}
+
 function showMessage(message) {
 
   $(".message").html(message);
@@ -80,6 +93,7 @@ function showMessage(message) {
   }});
 }
 
+// Adds a polygon in the area where the user clicked
 function addClickPolygon(data) {
 
   if (!hoverData) return;
@@ -94,12 +108,13 @@ function addClickPolygon(data) {
     }
   };
 
-  clickLayer = new L.GeoJSON(polygon, { style: clickPolygonStyle });
+  clickLayer = new L.GeoJSON(polygon, { style: CONFIG.polygonClickStyle });
   map.addLayer(clickLayer);
 
   clickLayer.cartodb_id = data.cartodb_id;
 }
 
+// Adds a hihglighted polygon
 function highlightPolygon(data) {
 
   if (!hoverData) return;
@@ -115,7 +130,7 @@ function highlightPolygon(data) {
     }
   };
 
-  geojsonLayer = new L.GeoJSON(polygon, { style: polygonStyle });
+  geojsonLayer = new L.GeoJSON(polygon, { style: CONFIG.polygonHoverStyle });
   map.addLayer(geojsonLayer);
 
   geojsonLayer.cartodb_id = data.cartodb_id;
@@ -134,10 +149,10 @@ function onFeatureClick(e, latlng, pos, data) {
   // Set popup content
   popup.setContent(data);
 
-  // Set latlng
+  // Set position
   popup.setLatLng(latlng);
 
-  // Show it!
+  // Show the popup
   map.openPopup(popup);
   addClickPolygon(data);
 }
@@ -147,6 +162,7 @@ function onFeatureOut() {
   if (!hoverData) return;
 
   document.body.style.cursor = "default";
+
   geojsonLayer.cartodb_id = null;
   geojsonLayer.off("featureparse");
   map.removeLayer(geojsonLayer)
@@ -155,18 +171,21 @@ function onFeatureOut() {
 
 function onFeatureHover(e, latlng, pos, data) {
   document.body.style.cursor = "pointer";
+
   highlightPolygon(data);
 }
 
 function createLayer(updatedAt, opacity) {
 
+  var query = "SELECT st_name, st_usps, cty0921md.the_geom_webmercator, cty0921md.cartodb_id, states_results.gov_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps";
+
   return new L.CartoDBLayer({
     map: map,
     user_name:  CONFIG.userName,
     table_name: CONFIG.tableName,
-    tile_style: tileStyleData,
+    tile_style: CONFIG.style,
     opacity:    opacity,
-    query: "SELECT st_name, st_usps, cty0921md.the_geom_webmercator, cty0921md.cartodb_id, states_results.gov_result as status, cty0921md.fips as thecode, cty0921md.st_usps as usps FROM cty0921md, states_results WHERE states_results.usps = cty0921md.st_usps",
+    query:      query,
 
     extra_params: {
       cache_buster: updatedAt
@@ -181,20 +200,19 @@ function createLayer(updatedAt, opacity) {
 
 }
 
-function onLayerLoaded(layerNew) {
+// Fade out the layer
+function fadeOut(lyr) {
 
-  layerNew.off("load", null, layerNew); // unbind the load event
-
-  showMessage("Map updated");
-  var deleted = false;
-
-  var opacity = 0;
+  var
+  deleted = false,
+  opacity = 0;
 
   (function animloop(){
 
     request = requestAnimFrame(animloop);
 
-    layerNew.setOpacity(opacity);
+    lyr.setOpacity(opacity);
+
     opacity += .05;
 
     if (!deleted && opacity >= 1 ) {
@@ -202,24 +220,32 @@ function onLayerLoaded(layerNew) {
       opacity = 0;
       deleted = true;
 
-      $(".last-update").stopwatch('reset');
+      resetStopWatch();
 
       cancelRequestAnimFrame(request);
 
-      // Swapp the layers
+      // Switch layers
       map.removeLayer(layer);
 
       delete layer;
-      layer = layerNew;
+      layer = lyr;
 
       map.invalidateSize(false);
     }
 
   })();
+}
+
+function onLayerLoaded(layerNew) {
+
+  layerNew.off("load", null, layerNew); // unbind the load event
+  showMessage("Map updated");
+
+  fadeOut(layerNew);
 
 }
 
-var onRefresh = function() {
+function refresh() {
 
   var tableName = 'states_results';
   var url = "http://" + CONFIG.userName + ".cartodb.com/api/v2/sql?q=" + escape("SELECT updated_at FROM " + tableName + " ORDER BY updated_at DESC LIMIT 1");
@@ -241,7 +267,7 @@ var onRefresh = function() {
 
         map.addLayer(layer, false);
 
-        $(".last-update").stopwatch('start');
+        startStopWatch();
 
       } else { // update layer
 
@@ -254,24 +280,19 @@ var onRefresh = function() {
 
 
         layerNew.on("load", function() {
-
           onLayerLoaded(this);
-
         });
-
 
       }
 
       lastUpdate = updatedAtDate;
-
     }
 
   }});
 
-  if (!timer) {
-    timer = setInterval(onRefresh, CONFIG.refreshInterval);
+  if (!timer) { // creates the timer
+    timer = setInterval(refresh, CONFIG.refreshInterval);
   }
-
 }
 
 function getHoverData() {
@@ -286,8 +307,7 @@ function getHoverData() {
 
 function initialize() {
 
-  // Initialize stopwatch
-  $('.last-update').stopwatch({format: 'Last update: <strong>{Minutes} and {seconds} ago</strong>'});
+  setupStopWatch();
 
   // Initialize the popup
   popup = new L.CartoDBPopup();
@@ -309,6 +329,5 @@ function initialize() {
     map.removeLayer(clickLayer);
   });
 
-  onRefresh(); // Start!
-
+  refresh(); // Start!
 }
