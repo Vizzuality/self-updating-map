@@ -27,17 +27,22 @@ CONFIG = {
 };
 
 var
-hoverData       = null;
+hoverData       = null,
 timeID          = null,
 request         = null,
-geojsonLayer    = new L.GeoJSON(null),
-clickLayer      = new L.GeoJSON(null),
-popup           = null,
 timer           = null,
-layer           = null,
-map             = null,
 lastUpdate      = null;
 
+var
+popup           = null,
+map             = null;
+
+var // layers
+layer           = null,
+geojsonLayer    = new L.GeoJSON(null),
+clickLayer      = new L.GeoJSON(null);
+
+var oldIE = ($.browser.msie && $.browser.version < 9) ? true : false;
 
 // Request animation frame
 window.cancelRequestAnimFrame = ( function() {
@@ -215,6 +220,8 @@ function fadeOut(lyr) {
 
     opacity += .05;
 
+    console.log(opacity);
+
     if (!deleted && opacity >= 1 ) {
 
       opacity = 0;
@@ -241,7 +248,16 @@ function onLayerLoaded(layerNew) {
   layerNew.off("load", null, layerNew); // unbind the load event
   showMessage("Map updated");
 
-  fadeOut(layerNew);
+  if (oldIE) {
+
+    map.removeLayer(layer);
+
+    delete layer;
+    layer = layerNew;
+
+  } else {
+    fadeOut(layerNew);
+  }
 
 }
 
@@ -273,11 +289,13 @@ function refresh() {
 
         showMessage("New data coming…");
 
-        // popup._close();
+        // old IE versions doesn't support opacity, in that case we create
+        // a visible layer
+        var opacity = (oldIE) ? 1 : 0;
 
-        var layerNew = createLayer(updatedAt, 0);
+        var layerNew = createLayer(updatedAt, opacity);
+
         map.addLayer(layerNew, false);
-
 
         layerNew.on("load", function() {
           onLayerLoaded(this);
